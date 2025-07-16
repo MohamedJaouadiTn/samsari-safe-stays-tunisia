@@ -49,22 +49,22 @@ const Footer = () => {
             <ul className="space-y-2 text-sm text-muted">
               <li className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                <span>support@samsari.tn</span>
+                <span>samsari.app@gmail.com</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span>+216 70 123 456</span>
+                <span>+216 99711863</span>
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin className="w-4 h-4" />
-                <span>Tunis, Tunisia</span>
+                <span>kairouan, Tunisia</span>
               </li>
             </ul>
           </div>
         </div>
         
         <div className="border-t border-background/20 mt-8 pt-8 text-center text-sm text-muted">
-          <p>&copy; 2024 Samsari.tn. {t('footer.rights')}</p>
+          <p>&copy; 2025 Samsari.tn. {t('footer.rights')}</p>
         </div>
       </div>
     </footer>;
