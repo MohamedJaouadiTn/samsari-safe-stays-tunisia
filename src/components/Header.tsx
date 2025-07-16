@@ -1,21 +1,19 @@
-
 import { Button } from "@/components/ui/button";
 import { Shield, User, Menu } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSelector from "./LanguageSelector";
-
 const Header = () => {
-  const { t } = useLanguage();
-
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  const {
+    t
+  } = useLanguage();
+  return <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center space-x-2">
           <Shield className="h-8 w-8 text-primary" />
           <div className="flex flex-col">
             <span className="text-xl font-bold text-primary">Samsari</span>
-            <span className="text-xs text-muted-foreground">.tn</span>
+            
           </div>
         </div>
 
@@ -52,8 +50,6 @@ const Header = () => {
           </Button>
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default Header;
