@@ -1,95 +1,50 @@
 
-import { Shield, Lock, Camera, CreditCard, CheckCircle, Users } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Shield, Users, Umbrella, HeartHandshake } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const TrustSection = () => {
-  const trustFeatures = [
-    {
-      icon: Shield,
-      title: "تحقق من الهوية",
-      description: "جميع المضيفين معتمدون ومتحقق من هويتهم",
-      color: "text-trust"
-    },
-    {
-      icon: Lock,
-      title: "دفع آمن بضمان",
-      description: "20% مقدماً، 80% بعد الوصول، حماية كاملة",
-      color: "text-primary"
-    },
-    {
-      icon: Camera,
-      title: "صور الوصول للحماية",
-      description: "التقط صور العقار عند الوصول للحماية من الأضرار",
-      color: "text-accent"
-    },
-    {
-      icon: CreditCard,
-      title: "طرق دفع تونسية",
-      description: "Paymee، Flouci، D17 - جميع طرق الدفع المحلية",
-      color: "text-secondary"
-    },
-    {
-      icon: CheckCircle,
-      title: "تقييمات معتمدة",
-      description: "فقط النزلاء الذين دفعوا عبر المنصة يمكنهم التقييم",
-      color: "text-trust"
-    },
-    {
-      icon: Users,
-      title: "دعم عملاء محلي",
-      description: "فريق دعم تونسي متاح من 10ص إلى 6م يومياً",
-      color: "text-primary"
-    }
-  ];
+  const { t } = useLanguage();
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-16 bg-background">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
+        <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            لماذا سمسار.تن موثوق؟
+            {t('trust.title')}
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            نحن نضع الأمان والثقة في المقدمة. منصتنا تحمي كل من المضيف والضيف
-            من خلال نظام حماية متكامل ومدروس بعناية
-          </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {trustFeatures.map((feature, index) => (
-            <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-              <CardContent className="p-6 text-center">
-                <div className="mb-4">
-                  <feature.icon className={`w-12 h-12 mx-auto ${feature.color}`} />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Statistics */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div>
-            <div className="text-3xl font-bold text-primary mb-2">500+</div>
-            <div className="text-sm text-muted-foreground">مضيف معتمد</div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="text-center group">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
+              <Shield className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">{t('trust.secure_payment')}</h3>
+            <p className="text-muted-foreground text-sm">{t('trust.secure_payment_desc')}</p>
           </div>
-          <div>
-            <div className="text-3xl font-bold text-accent mb-2">1000+</div>
-            <div className="text-sm text-muted-foreground">حجز آمن</div>
+          
+          <div className="text-center group">
+            <div className="w-16 h-16 bg-trust/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-trust/20 transition-colors">
+              <Users className="w-8 h-8 text-trust" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">{t('trust.verified_hosts')}</h3>
+            <p className="text-muted-foreground text-sm">{t('trust.verified_hosts_desc')}</p>
           </div>
-          <div>
-            <div className="text-3xl font-bold text-trust mb-2">4.8/5</div>
-            <div className="text-sm text-muted-foreground">تقييم المستخدمين</div>
+          
+          <div className="text-center group">
+            <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-accent/20 transition-colors">
+              <Umbrella className="w-8 h-8 text-accent" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">{t('trust.insurance')}</h3>
+            <p className="text-muted-foreground text-sm">{t('trust.insurance_desc')}</p>
           </div>
-          <div>
-            <div className="text-3xl font-bold text-secondary mb-2">18</div>
-            <div className="text-sm text-muted-foreground">محافظة تونسية</div>
+          
+          <div className="text-center group">
+            <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-secondary/20 transition-colors">
+              <HeartHandshake className="w-8 h-8 text-secondary" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">{t('trust.support')}</h3>
+            <p className="text-muted-foreground text-sm">{t('trust.support_desc')}</p>
           </div>
         </div>
       </div>

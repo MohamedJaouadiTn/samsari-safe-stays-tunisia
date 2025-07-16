@@ -1,8 +1,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Shield, User, Menu } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSelector from "./LanguageSelector";
 
 const Header = () => {
+  const { t } = useLanguage();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -18,27 +22,28 @@ const Header = () => {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
           <a href="#" className="text-sm font-medium hover:text-primary transition-colors">
-            استكشف العقارات
+            {t('header.explore')}
           </a>
           <a href="#" className="text-sm font-medium hover:text-primary transition-colors">
-            كن مضيفاً
+            {t('header.become_host')}
           </a>
           <a href="#" className="text-sm font-medium hover:text-primary transition-colors">
-            الأمان
+            {t('header.safety')}
           </a>
           <a href="#" className="text-sm font-medium hover:text-primary transition-colors">
-            المساعدة
+            {t('header.help')}
           </a>
         </nav>
 
-        {/* Auth Buttons */}
+        {/* Auth Buttons & Language Selector */}
         <div className="flex items-center space-x-2">
+          <LanguageSelector />
           <Button variant="ghost" size="sm" className="hidden sm:flex">
-            تسجيل الدخول
+            {t('header.login')}
           </Button>
           <Button size="sm" className="bg-primary hover:bg-primary/90">
             <User className="w-4 h-4 mr-2" />
-            إنشاء حساب
+            {t('header.signup')}
           </Button>
           
           {/* Mobile Menu */}
