@@ -64,7 +64,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-background/20 mt-8 pt-8 text-center text-sm text-muted">
-          <p>&copy; 2025 Samsari.tn. {t('footer.rights')}</p>
+          <p>&copy; 2025 Samsari.tn  {t('footer.rights')}</p>
         </div>
       </div>
     </footer>;
