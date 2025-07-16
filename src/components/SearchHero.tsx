@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +7,10 @@ import { Calendar, MapPin, Search, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import SearchableSelect from "./SearchableSelect";
-
 const SearchHero = () => {
-  const { t } = useLanguage();
+  const {
+    t
+  } = useLanguage();
   const [searchData, setSearchData] = useState({
     city: "",
     checkIn: "",
@@ -19,23 +19,21 @@ const SearchHero = () => {
     maxPrice: "",
     currency: "TND"
   });
-
-  const tunisianGovernorates = [
-    "Tunis", "Ariana", "Ben Arous", "Manouba", "Nabeul", "Zaghouan",
-    "Bizerte", "Beja", "Jendouba", "Kef (El Kef)", "Siliana", "Sousse",
-    "Monastir", "Mahdia", "Sfax", "Kairouan", "Kasserine", "Sidi Bouzid",
-    "Gabès", "Medenine", "Tataouine", "Gafsa", "Tozeur", "Kebili"
-  ];
-
-  const currencies = [
-    { code: "TND", symbol: "د.ت" },
-    { code: "USD", symbol: "$" },
-    { code: "EUR", symbol: "€" },
-    { code: "GBP", symbol: "£" }
-  ];
-
-  return (
-    <section className="relative bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 py-20">
+  const tunisianGovernorates = ["Tunis", "Ariana", "Ben Arous", "Manouba", "Nabeul", "Zaghouan", "Bizerte", "Beja", "Jendouba", "Kef (El Kef)", "Siliana", "Sousse", "Monastir", "Mahdia", "Sfax", "Kairouan", "Kasserine", "Sidi Bouzid", "Gabès", "Medenine", "Tataouine", "Gafsa", "Tozeur", "Kebili"];
+  const currencies = [{
+    code: "TND",
+    symbol: "د.ت"
+  }, {
+    code: "USD",
+    symbol: "$"
+  }, {
+    code: "EUR",
+    symbol: "€"
+  }, {
+    code: "GBP",
+    symbol: "£"
+  }];
+  return <section className="relative bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 py-20">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto text-center mb-12">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 animate-fade-in">
@@ -73,14 +71,10 @@ const SearchHero = () => {
                   <MapPin className="w-4 h-4 mr-2 text-primary" />
                   {t('search.city')}
                 </Label>
-                <SearchableSelect
-                  value={searchData.city}
-                  onValueChange={(value) => setSearchData({...searchData, city: value})}
-                  options={tunisianGovernorates}
-                  placeholder={t('search.select_city')}
-                  searchPlaceholder="Search governorates..."
-                  emptyMessage="No governorate found."
-                />
+                <SearchableSelect value={searchData.city} onValueChange={value => setSearchData({
+                ...searchData,
+                city: value
+              })} options={tunisianGovernorates} placeholder={t('search.select_city')} searchPlaceholder="Search governorates..." emptyMessage="No governorate found." />
               </div>
 
               {/* Check-in Date */}
@@ -89,12 +83,10 @@ const SearchHero = () => {
                   <Calendar className="w-4 h-4 mr-2 text-primary" />
                   {t('search.checkin')}
                 </Label>
-                <Input
-                  id="checkin"
-                  type="date"
-                  value={searchData.checkIn}
-                  onChange={(e) => setSearchData({...searchData, checkIn: e.target.value})}
-                />
+                <Input id="checkin" type="date" value={searchData.checkIn} onChange={e => setSearchData({
+                ...searchData,
+                checkIn: e.target.value
+              })} />
               </div>
 
               {/* Check-out Date */}
@@ -103,12 +95,10 @@ const SearchHero = () => {
                   <Calendar className="w-4 h-4 mr-2 text-primary" />
                   {t('search.checkout')}
                 </Label>
-                <Input
-                  id="checkout"
-                  type="date"
-                  value={searchData.checkOut}
-                  onChange={(e) => setSearchData({...searchData, checkOut: e.target.value})}
-                />
+                <Input id="checkout" type="date" value={searchData.checkOut} onChange={e => setSearchData({
+                ...searchData,
+                checkOut: e.target.value
+              })} />
               </div>
 
               {/* Currency Selection */}
@@ -117,16 +107,17 @@ const SearchHero = () => {
                   <DollarSign className="w-4 h-4 mr-2 text-primary" />
                   Currency
                 </Label>
-                <Select value={searchData.currency} onValueChange={(value) => setSearchData({...searchData, currency: value})}>
+                <Select value={searchData.currency} onValueChange={value => setSearchData({
+                ...searchData,
+                currency: value
+              })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {currencies.map((currency) => (
-                      <SelectItem key={currency.code} value={currency.code}>
+                    {currencies.map(currency => <SelectItem key={currency.code} value={currency.code}>
                         {currency.symbol} {currency.code}
-                      </SelectItem>
-                    ))}
+                      </SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -138,20 +129,14 @@ const SearchHero = () => {
                   {t('search.price')}
                 </Label>
                 <div className="flex space-x-2">
-                  <Input
-                    placeholder={t('search.from')}
-                    type="number"
-                    value={searchData.minPrice}
-                    onChange={(e) => setSearchData({...searchData, minPrice: e.target.value})}
-                    className="w-full"
-                  />
-                  <Input
-                    placeholder={t('search.to')}
-                    type="number"
-                    value={searchData.maxPrice}
-                    onChange={(e) => setSearchData({...searchData, maxPrice: e.target.value})}
-                    className="w-full"
-                  />
+                  <Input placeholder={t('search.from')} type="number" value={searchData.minPrice} onChange={e => setSearchData({
+                  ...searchData,
+                  minPrice: e.target.value
+                })} className="w-full mx-0 my-0 px-[2px]" />
+                  <Input placeholder={t('search.to')} type="number" value={searchData.maxPrice} onChange={e => setSearchData({
+                  ...searchData,
+                  maxPrice: e.target.value
+                })} className="w-full" />
                 </div>
               </div>
 
@@ -168,16 +153,12 @@ const SearchHero = () => {
         <div className="max-w-4xl mx-auto mt-8 text-center">
           <p className="text-sm text-muted-foreground mb-4">{t('search.popular_searches')}</p>
           <div className="flex flex-wrap justify-center gap-2">
-            {["Tunis", "Sousse", "Hammamet", "Sfax", "Monastir"].map((city) => (
-              <Button key={city} variant="outline" size="sm" className="text-xs">
+            {["Tunis", "Sousse", "Hammamet", "Sfax", "Monastir"].map(city => <Button key={city} variant="outline" size="sm" className="text-xs">
                 {city}
-              </Button>
-            ))}
+              </Button>)}
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default SearchHero;
