@@ -1,12 +1,10 @@
-
 import { Shield, Mail, Phone, MapPin } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-
 const Footer = () => {
-  const { t } = useLanguage();
-
-  return (
-    <footer className="bg-foreground text-background py-12">
+  const {
+    t
+  } = useLanguage();
+  return <footer className="bg-foreground text-background py-12">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Section */}
@@ -15,7 +13,7 @@ const Footer = () => {
               <Shield className="h-8 w-8 text-primary" />
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-primary">Samsari</span>
-                <span className="text-xs text-muted">.tn</span>
+                
               </div>
             </div>
             <p className="text-muted mb-6 max-w-md">
@@ -28,7 +26,7 @@ const Footer = () => {
               <div className="flex space-x-4 text-sm">
                 <span className="bg-background/10 px-3 py-1 rounded">Paymee</span>
                 <span className="bg-background/10 px-3 py-1 rounded">Flouci</span>
-                <span className="bg-background/10 px-3 py-1 rounded">D17</span>
+                <span className="bg-background/10 px-3 py-1 rounded">credit card</span>
               </div>
             </div>
           </div>
@@ -69,8 +67,6 @@ const Footer = () => {
           <p>&copy; 2024 Samsari.tn. {t('footer.rights')}</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
