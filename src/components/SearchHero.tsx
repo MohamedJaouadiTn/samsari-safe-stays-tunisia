@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, MapPin, Search, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
+import SearchableSelect from "./SearchableSelect";
 
 const SearchHero = () => {
   const { t } = useLanguage();
@@ -72,16 +73,14 @@ const SearchHero = () => {
                   <MapPin className="w-4 h-4 mr-2 text-primary" />
                   {t('search.city')}
                 </Label>
-                <Select value={searchData.city} onValueChange={(value) => setSearchData({...searchData, city: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('search.select_city')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tunisianGovernorates.map((governorate) => (
-                      <SelectItem key={governorate} value={governorate}>{governorate}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={searchData.city}
+                  onValueChange={(value) => setSearchData({...searchData, city: value})}
+                  options={tunisianGovernorates}
+                  placeholder={t('search.select_city')}
+                  searchPlaceholder="Search governorates..."
+                  emptyMessage="No governorate found."
+                />
               </div>
 
               {/* Check-in Date */}
