@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import PropertyBasics from "@/components/host/PropertyBasics";
 import PropertyDetails from "@/components/host/PropertyDetails";
 import PropertyPhotos from "@/components/host/PropertyPhotos";
@@ -26,22 +27,23 @@ const HostOnboarding = () => {
     propertyType: "",
     title: "",
     description: "",
-    address: "",
+    governorate: "",
     city: "",
+    address: "",
     latitude: null,
     longitude: null,
     bedrooms: 1,
     bathrooms: 1,
     maxGuests: 4,
     extraBeds: 0,
-    bedroomDetails: [],
-    visitorsAllowed: false,
-    overnightVisitors: false,
-    daytimeVisitors: true,
+    bedTypes: [],
+    visitorPolicy: "morning_only",
     amenities: [],
     photos: [],
     basePrice: "",
-    currency: "TND"
+    currency: "TND",
+    isPublic: true,
+    bookingEnabled: true
   });
 
   const totalSteps = 5;
@@ -61,7 +63,7 @@ const HostOnboarding = () => {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 1: // Property Basics
-        if (!formData.propertyType || !formData.title || !formData.address || !formData.city) {
+        if (!formData.propertyType || !formData.title || !formData.governorate || !formData.city) {
           toast({
             title: "Missing Information",
             description: "Please fill in all required fields",
@@ -136,37 +138,52 @@ const HostOnboarding = () => {
     setLoading(true);
     
     try {
-      // Here you would typically save to your database
-      // For now, we'll just show a success message
-      
-      const listingId = `listing_${Date.now()}`;
-      const shareUrl = `${window.location.origin}/property/${listingId}`;
-      
-      // Store in localStorage for demo purposes
-      const existingListings = JSON.parse(localStorage.getItem('userListings') || '[]');
-      const newListing = {
-        id: listingId,
-        ...formData,
-        hostId: user.id,
-        createdAt: new Date().toISOString(),
-        shareUrl,
+      const propertyData = {
+        host_id: user.id,
+        title: formData.title,
+        description: formData.description,
+        property_type: formData.propertyType,
+        governorate: formData.governorate,
+        city: formData.city,
+        address: formData.address,
+        coordinates: formData.latitude && formData.longitude ? 
+          { lat: formData.latitude, lng: formData.longitude } : null,
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        max_guests: formData.maxGuests,
+        extra_beds: formData.extraBeds,
+        bed_types: formData.bedTypes,
+        visitor_policy: formData.visitorPolicy,
+        amenities: formData.amenities,
+        photos: formData.photos,
+        price_per_night: parseFloat(formData.basePrice),
+        is_public: formData.isPublic,
+        booking_enabled: formData.bookingEnabled,
         status: 'published'
       };
-      
-      existingListings.push(newListing);
-      localStorage.setItem('userListings', JSON.stringify(existingListings));
+
+      const { data, error } = await supabase
+        .from('properties')
+        .insert(propertyData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const shareUrl = `${window.location.origin}/property/${data.id}`;
       
       toast({
         title: "Listing Published!",
-        description: `Your property is now live. Share URL: ${shareUrl}`,
+        description: `Your property is now live and searchable. Share URL: ${shareUrl}`,
       });
       
-      // Navigate to a success page or listings page
+      // Navigate to profile after success
       setTimeout(() => {
         navigate("/profile");
       }, 2000);
       
     } catch (error) {
+      console.error('Publishing error:', error);
       toast({
         title: "Error",
         description: "Failed to publish listing. Please try again.",

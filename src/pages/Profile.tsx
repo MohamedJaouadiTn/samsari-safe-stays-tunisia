@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Settings, Home, MapPin, Phone, Mail, Calendar, Shield } from "lucide-react";
+import { User, Settings, Home, Calendar, Shield, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import ProfilePictureUpload from "@/components/ProfilePictureUpload";
+import IdVerification from "@/components/IdVerification";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -23,10 +23,10 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     full_name: "",
-    username: "",
     phone: "",
     avatar_url: "",
-    is_host: false
+    is_host: false,
+    verification_status: "unverified"
   });
 
   useEffect(() => {
@@ -61,7 +61,9 @@ const Profile = () => {
       .from("profiles")
       .upsert({
         id: user.id,
-        ...profile,
+        full_name: profile.full_name,
+        phone: profile.phone,
+        avatar_url: profile.avatar_url,
         updated_at: new Date().toISOString()
       });
 
@@ -109,6 +111,14 @@ const Profile = () => {
     setLoading(false);
   };
 
+  const handleAvatarUpdate = (newUrl: string) => {
+    setProfile({ ...profile, avatar_url: newUrl });
+  };
+
+  const handleVerificationSubmitted = () => {
+    setProfile({ ...profile, verification_status: 'pending' });
+  };
+
   if (!user) return null;
 
   return (
@@ -125,8 +135,9 @@ const Profile = () => {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="verification">Verification</TabsTrigger>
               <TabsTrigger value="hosting">Hosting</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -140,26 +151,14 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-20 w-20">
-                      <AvatarImage src={profile.avatar_url} />
-                      <AvatarFallback>
-                        {profile.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="text-lg font-semibold">{profile.full_name || "No name set"}</h3>
-                      <p className="text-muted-foreground">{user.email}</p>
-                      {profile.is_host && (
-                        <Badge variant="secondary" className="mt-1">
-                          <Home className="h-3 w-3 mr-1" />
-                          Host
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+                  <ProfilePictureUpload
+                    currentAvatarUrl={profile.avatar_url}
+                    userInitial={profile.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
+                    userId={user.id}
+                    onAvatarUpdate={handleAvatarUpdate}
+                  />
 
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div>
                       <Label htmlFor="full_name">Full Name</Label>
                       <Input
@@ -167,15 +166,6 @@ const Profile = () => {
                         value={profile.full_name}
                         onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                         placeholder="Enter your full name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="username">Username</Label>
-                      <Input
-                        id="username"
-                        value={profile.username}
-                        onChange={(e) => setProfile({ ...profile, username: e.target.value })}
-                        placeholder="Choose a username"
                       />
                     </div>
                     <div>
@@ -203,6 +193,13 @@ const Profile = () => {
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="verification">
+              <IdVerification
+                verificationStatus={profile.verification_status}
+                onVerificationSubmitted={handleVerificationSubmitted}
+              />
             </TabsContent>
 
             <TabsContent value="hosting">
