@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -9,11 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Home, Calendar, Shield, Mail } from "lucide-react";
+import { User, Settings, Camera, Home, LogOut, Shield, Mail, Package, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import IdVerification from "@/components/IdVerification";
 import ChangePassword from "@/components/ChangePassword";
+import MyProperties from "@/components/host/MyProperties";
+import Inbox from "@/components/messaging/Inbox";
+import { Calendar } from "lucide-react";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -130,10 +132,12 @@ const Profile = () => {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
               <TabsTrigger value="hosting">Hosting</TabsTrigger>
+              <TabsTrigger value="properties">My Properties</TabsTrigger>
+              <TabsTrigger value="inbox">Inbox</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
@@ -222,6 +226,45 @@ const Profile = () => {
                       </Button>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="properties">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Package className="h-5 w-5" />
+                    <span>My Properties</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {profile.is_host ? (
+                    <MyProperties />
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        You need to become a host to create and manage properties.
+                      </p>
+                      <Button onClick={becomeHost} disabled={loading}>
+                        {loading ? "Processing..." : "Become a Host"}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="inbox">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <MessageSquare className="h-5 w-5" />
+                    <span>Messages</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Inbox />
                 </CardContent>
               </Card>
             </TabsContent>

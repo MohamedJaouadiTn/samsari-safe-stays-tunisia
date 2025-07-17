@@ -1,10 +1,15 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Users, Bed, Bath, ArrowLeft, Share2, CheckCircle, Wifi, Car, Coffee, Tv, AirVent, Waves, Shield } from "lucide-react";
+import { 
+  MapPin, Users, Bed, Bath, ArrowLeft, Share2, 
+  CheckCircle, Wifi, Car, Coffee, Tv, AirVent, Waves, Shield,
+  AlarmSmoke, FireExtinguisher, FirstAid
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
@@ -13,6 +18,7 @@ import Footer from "@/components/Footer";
 import PropertyImageGallery from "@/components/property/PropertyImageGallery";
 import PropertyReviews from "@/components/property/PropertyReviews";
 import PropertyBookingCard from "@/components/property/PropertyBookingCard";
+import PropertySharingMeta from "@/components/property/PropertySharingMeta";
 
 type Property = Tables<"properties">;
 
@@ -30,10 +36,8 @@ const PropertyDetails = () => {
     }
   }, [id]);
 
-  // Update page title and meta tags when property loads
   useEffect(() => {
     if (property) {
-      updateSEOTags();
       checkPropertyStatus();
     }
   }, [property]);
@@ -113,64 +117,51 @@ const PropertyDetails = () => {
     }
   };
 
-  const updateSEOTags = () => {
+  const shareProperty = async () => {
     if (!property) return;
-
-    const title = `${property.title} - ${property.price_per_night} TND per night`;
-    const description = `${property.max_guests} guests max • ${property.bedrooms} bedroom${property.bedrooms > 1 ? 's' : ''} • ${property.bathrooms} bathroom${property.bathrooms > 1 ? 's' : ''} in ${property.city}, ${property.governorate}`;
-    const amenitiesText = Array.isArray(property.amenities) ? property.amenities.slice(0, 3).join(', ') : '';
-    const fullDescription = `${description}${amenitiesText ? ` • ${amenitiesText}` : ''}`;
-
-    // Update page title
-    document.title = title;
-
-    // Update meta description
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute('content', fullDescription);
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'description';
-      meta.content = fullDescription;
-      document.head.appendChild(meta);
-    }
-
-    // Update Open Graph tags for social sharing
-    updateOpenGraphTags(title, fullDescription);
-  };
-
-  const updateOpenGraphTags = (title: string, description: string) => {
-    const ogTags = [
-      { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: window.location.href },
-      { property: 'twitter:title', content: title },
-      { property: 'twitter:description', content: description },
-      { property: 'twitter:card', content: 'summary_large_image' }
-    ];
-
-    // Add property image if available
-    if (property?.photos && Array.isArray(property.photos) && property.photos.length > 0) {
-      // Fix: Type check and safely access the url property
-      const photoObj = property.photos[0] as any;
-      const firstImage = photoObj && typeof photoObj === 'object' && photoObj.url ? photoObj.url : "/placeholder.svg";
-      
-      ogTags.push(
-        { property: 'og:image', content: firstImage },
-        { property: 'twitter:image', content: firstImage }
-      );
-    }
-
-    ogTags.forEach(({ property, content }) => {
-      let meta = document.querySelector(`meta[property="${property}"]`);
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute('property', property);
-        document.head.appendChild(meta);
+    
+    const shareUrl = window.location.href;
+    const shareTitle = `${property.title} - ${property.price_per_night} TND per night`;
+    const shareText = `Check out this beautiful ${property.property_type} in ${property.city}, ${property.governorate}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl
+        });
+        
+        toast({
+          title: "Shared successfully",
+          description: "Property shared with others"
+        });
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          // Only show error if not user cancellation
+          toast({
+            title: "Sharing failed",
+            description: "Could not share the property",
+            variant: "destructive"
+          });
+        }
       }
-      meta.setAttribute('content', content);
-    });
+    } else {
+      // Fallback for browsers that don't support navigator.share
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link Copied",
+          description: "Property link copied to clipboard"
+        });
+      } catch (error) {
+        toast({
+          title: "Copy Failed",
+          description: "Could not copy link to clipboard",
+          variant: "destructive"
+        });
+      }
+    }
   };
 
   const getPropertyImages = (photos: any) => {
@@ -195,20 +186,14 @@ const PropertyDetails = () => {
     }
   };
 
-  const shareProperty = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: property?.title || "Property",
-        text: `Check out this property: ${property?.title} - ${property?.price_per_night} TND per night`,
-        url: window.location.href
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: "Link Copied",
-        description: "Property link copied to clipboard"
-      });
+  // Get safety features with icons
+  const getSafetyFeatureIcon = (feature: string) => {
+    switch (feature) {
+      case 'smoke_detector': return <AlarmSmoke className="h-4 w-4" />;
+      case 'carbon_monoxide_detector': return <AlarmSmoke className="h-4 w-4" />;
+      case 'first_aid_kit': return <FirstAid className="h-4 w-4" />;
+      case 'fire_extinguisher': return <FireExtinguisher className="h-4 w-4" />;
+      default: return <Shield className="h-4 w-4" />;
     }
   };
 
@@ -255,10 +240,14 @@ const PropertyDetails = () => {
 
   const images = getPropertyImages(property.photos);
   const amenities = Array.isArray(property.amenities) ? property.amenities : [];
+  const safetyFeatures = Array.isArray(property.safety_features) ? property.safety_features : [];
 
   return (
     <div className="min-h-screen">
       <Header />
+      
+      {/* Property sharing metadata */}
+      {property && <PropertySharingMeta property={property} />}
       
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
@@ -323,8 +312,92 @@ const PropertyDetails = () => {
                 <Badge variant="outline">{property.property_type}</Badge>
                 
                 <p className="text-muted-foreground">{property.description}</p>
+
+                {/* Display minimum stay */}
+                {property.minimum_stay && property.minimum_stay > 1 && (
+                  <div className="bg-muted p-3 rounded-md text-sm">
+                    <p className="font-medium">Minimum stay: {property.minimum_stay} nights</p>
+                  </div>
+                )}
+
+                {/* Check-in/out times */}
+                {(property.check_in_time || property.check_out_time) && (
+                  <div className="flex flex-wrap gap-6 text-sm">
+                    {property.check_in_time && (
+                      <div>
+                        <p className="font-medium">Check-in time</p>
+                        <p className="text-muted-foreground">{property.check_in_time}</p>
+                      </div>
+                    )}
+                    {property.check_out_time && (
+                      <div>
+                        <p className="font-medium">Check-out time</p>
+                        <p className="text-muted-foreground">{property.check_out_time}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {/* Sleeping Arrangements */}
+            {property.bed_types && Array.isArray(property.bed_types) && property.bed_types.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sleeping Arrangements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {property.bed_types.map((bedConfig: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <div className="flex items-center mb-2">
+                          <Bed className="h-5 w-5 mr-2 text-muted-foreground" />
+                          <span className="font-medium">Bedroom {index + 1}</span>
+                        </div>
+                        <p className="text-sm">
+                          {bedConfig.beds} {bedConfig.type} bed{bedConfig.beds !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    ))}
+                    
+                    {property.extra_beds > 0 && (
+                      <div className="border rounded-lg p-3">
+                        <div className="flex items-center mb-2">
+                          <Bed className="h-5 w-5 mr-2 text-muted-foreground" />
+                          <span className="font-medium">Extra beds</span>
+                        </div>
+                        <p className="text-sm">
+                          {property.extra_beds} extra bed{property.extra_beds !== 1 ? 's' : ''} available
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Safety Features */}
+            {safetyFeatures.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Safety Features</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    {safetyFeatures.map((feature: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2">
+                        {getSafetyFeatureIcon(feature)}
+                        <span className="text-sm">
+                          {feature.split('_').map(word => 
+                            word.charAt(0).toUpperCase() + word.slice(1)
+                          ).join(' ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Amenities */}
             {amenities.length > 0 && (
@@ -341,6 +414,40 @@ const PropertyDetails = () => {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* House Rules */}
+            {property.house_rules && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>House Rules</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm whitespace-pre-line">{property.house_rules}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Cancellation Policy */}
+            {property.cancellation_policy && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cancellation Policy</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Badge variant="outline" className="mb-2">{property.cancellation_policy}</Badge>
+                  <p className="text-sm text-muted-foreground">
+                    {property.cancellation_policy === 'Flexible' && 
+                      'Full refund if cancelled at least 24 hours before check-in. Partial refund thereafter.'}
+                    {property.cancellation_policy === 'Moderate' && 
+                      'Full refund if cancelled 5 days before check-in. Partial refund thereafter.'}
+                    {property.cancellation_policy === 'Strict' && 
+                      'Full refund if cancelled 14 days before check-in. No refund thereafter.'}
+                    {property.cancellation_policy === 'Super Strict' && 
+                      'No refunds for cancellations. We recommend travel insurance for this property.'}
+                  </p>
                 </CardContent>
               </Card>
             )}
