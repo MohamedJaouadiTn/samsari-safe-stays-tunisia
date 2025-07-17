@@ -4,16 +4,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Users, Bed, Bath, Star, ArrowLeft, Heart, Share2, Calendar, Shield, CheckCircle, Wifi, Car, Coffee, Tv, AirVent, Waves } from "lucide-react";
+import { MapPin, Users, Bed, Bath, ArrowLeft, Share2, CheckCircle, Wifi, Car, Coffee, Tv, AirVent, Waves, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PropertyImageGallery from "@/components/property/PropertyImageGallery";
+import PropertyReviews from "@/components/property/PropertyReviews";
+import PropertyBookingCard from "@/components/property/PropertyBookingCard";
 
 type Property = Tables<"properties">;
 
@@ -23,17 +23,19 @@ const PropertyDetails = () => {
   const { toast } = useToast();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [guests, setGuests] = useState(1);
-  const [comment, setComment] = useState("");
 
   useEffect(() => {
     if (id) {
       fetchProperty();
     }
   }, [id]);
+
+  // Update page title and meta tags when property loads
+  useEffect(() => {
+    if (property) {
+      updateSEOTags();
+    }
+  }, [property]);
 
   const fetchProperty = async () => {
     setLoading(true);
@@ -70,6 +72,63 @@ const PropertyDetails = () => {
     }
   };
 
+  const updateSEOTags = () => {
+    if (!property) return;
+
+    const title = `${property.title} - ${property.price_per_night} TND per night`;
+    const description = `${property.max_guests} guests max • ${property.bedrooms} bedroom${property.bedrooms > 1 ? 's' : ''} • ${property.bathrooms} bathroom${property.bathrooms > 1 ? 's' : ''} in ${property.city}, ${property.governorate}`;
+    const amenitiesText = Array.isArray(property.amenities) ? property.amenities.slice(0, 3).join(', ') : '';
+    const fullDescription = `${description}${amenitiesText ? ` • ${amenitiesText}` : ''}`;
+
+    // Update page title
+    document.title = title;
+
+    // Update meta description
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', fullDescription);
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = fullDescription;
+      document.head.appendChild(meta);
+    }
+
+    // Update Open Graph tags for social sharing
+    updateOpenGraphTags(title, fullDescription);
+  };
+
+  const updateOpenGraphTags = (title: string, description: string) => {
+    const ogTags = [
+      { property: 'og:title', content: title },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: window.location.href },
+      { property: 'twitter:title', content: title },
+      { property: 'twitter:description', content: description },
+      { property: 'twitter:card', content: 'summary_large_image' }
+    ];
+
+    // Add property image if available
+    if (property?.photos && Array.isArray(property.photos) && property.photos.length > 0) {
+      const firstImage = property.photos[0]?.url || "/placeholder.svg";
+      ogTags.push(
+        { property: 'og:image', content: firstImage },
+        { property: 'twitter:image', content: firstImage }
+      );
+    }
+
+    ogTags.forEach(({ property, content }) => {
+      let meta = document.querySelector(`meta[property="${property}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('property', property);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    });
+  };
+
   const getPropertyImages = (photos: any) => {
     if (!photos || !Array.isArray(photos) || photos.length === 0) {
       return ["/placeholder.svg"];
@@ -89,37 +148,20 @@ const PropertyDetails = () => {
     }
   };
 
-  const checkAvailability = async () => {
-    if (!checkIn || !checkOut || !property) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("property_id", property.id)
-        .or(`and(check_in_date.lte.${checkOut},check_out_date.gte.${checkIn})`);
-
-      if (error) {
-        console.error("Error checking availability:", error);
-        return;
-      }
-
-      const isAvailable = !data || data.length === 0;
-      
-      if (isAvailable) {
-        toast({
-          title: "Available!",
-          description: "This property is available for your selected dates",
-        });
-      } else {
-        toast({
-          title: "Not Available",
-          description: "This property is booked for your selected dates",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Error:", error);
+  const shareProperty = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: property?.title || "Property",
+        text: `Check out this property: ${property?.title} - ${property?.price_per_night} TND per night`,
+        url: window.location.href
+      });
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link Copied",
+        description: "Property link copied to clipboard"
+      });
     }
   };
 
@@ -176,11 +218,7 @@ const PropertyDetails = () => {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold">{property.title}</h1>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Heart className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={shareProperty}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
@@ -197,34 +235,7 @@ const PropertyDetails = () => {
           {/* Images and Details */}
           <div className="lg:col-span-2 space-y-6">
             {/* Image Gallery */}
-            <div className="space-y-4">
-              <div className="relative">
-                <img
-                  src={images[selectedImageIndex]}
-                  alt={property.title}
-                  className="w-full h-96 object-cover rounded-lg"
-                />
-                <div className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded text-sm">
-                  {selectedImageIndex + 1} / {images.length}
-                </div>
-              </div>
-              
-              {images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto">
-                  {images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={image}
-                      alt={`${property.title} ${index + 1}`}
-                      className={`w-20 h-20 object-cover rounded cursor-pointer ${
-                        index === selectedImageIndex ? 'ring-2 ring-primary' : ''
-                      }`}
-                      onClick={() => setSelectedImageIndex(index)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <PropertyImageGallery images={images} title={property.title} />
 
             {/* Property Info */}
             <Card>
@@ -275,101 +286,13 @@ const PropertyDetails = () => {
               </Card>
             )}
 
-            {/* Comments Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Reviews & Comments</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  <span className="font-semibold">4.8</span>
-                  <span className="text-muted-foreground">(24 reviews)</span>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="comment">Leave a comment</Label>
-                    <Textarea
-                      id="comment"
-                      placeholder="Share your experience..."
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                    />
-                    <Button size="sm">Post Comment</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Reviews Section */}
+            <PropertyReviews propertyId={property.id} />
           </div>
 
           {/* Booking Card */}
           <div className="lg:col-span-1">
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">
-                    {property.price_per_night} TND
-                  </span>
-                  <span className="text-sm text-muted-foreground">per night</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="checkin">Check-in</Label>
-                    <Input
-                      id="checkin"
-                      type="date"
-                      value={checkIn}
-                      onChange={(e) => setCheckIn(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="checkout">Check-out</Label>
-                    <Input
-                      id="checkout"
-                      type="date"
-                      value={checkOut}
-                      onChange={(e) => setCheckOut(e.target.value)}
-                      min={checkIn || new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="guests">Guests</Label>
-                  <Input
-                    id="guests"
-                    type="number"
-                    value={guests}
-                    onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
-                    min="1"
-                    max={property.max_guests}
-                  />
-                </div>
-                
-                <Button 
-                  onClick={checkAvailability}
-                  className="w-full"
-                  disabled={!checkIn || !checkOut}
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Check Availability
-                </Button>
-                
-                <Button variant="outline" className="w-full">
-                  Reserve Now
-                </Button>
-                
-                <div className="text-sm text-muted-foreground">
-                  <p>You won't be charged yet</p>
-                </div>
-              </CardContent>
-            </Card>
+            <PropertyBookingCard property={property} />
           </div>
         </div>
       </main>

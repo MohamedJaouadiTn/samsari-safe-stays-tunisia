@@ -40,8 +40,12 @@ export type Database = {
       }
       bookings: {
         Row: {
+          actual_check_in: string | null
+          actual_check_out: string | null
           check_in_date: string
+          check_in_time: string | null
           check_out_date: string
+          check_out_time: string | null
           created_at: string
           guest_id: string
           host_id: string
@@ -52,8 +56,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actual_check_in?: string | null
+          actual_check_out?: string | null
           check_in_date: string
+          check_in_time?: string | null
           check_out_date: string
+          check_out_time?: string | null
           created_at?: string
           guest_id: string
           host_id: string
@@ -64,8 +72,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actual_check_in?: string | null
+          actual_check_out?: string | null
           check_in_date?: string
+          check_in_time?: string | null
           check_out_date?: string
+          check_out_time?: string | null
           created_at?: string
           guest_id?: string
           host_id?: string
@@ -243,6 +255,83 @@ export type Database = {
           visitor_policy?: string | null
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          booking_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          property_id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          property_id: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          property_id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_properties: {
+        Row: {
+          created_at: string
+          id: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_properties_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
