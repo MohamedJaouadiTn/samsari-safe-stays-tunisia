@@ -13,9 +13,9 @@ interface PropertyDetailsProps {
   data: {
     bedrooms: number;
     bathrooms: number;
-    maxGuests: number;
-    extraBeds: number;
-    bedroomDetails: BedroomDetail[];
+    max_guests: number;
+    extra_beds: number;
+    bed_types: BedroomDetail[];
     sleeping_arrangements: any[];
   };
   onUpdate: (data: any) => void;
@@ -28,9 +28,9 @@ const BEDROOM_TYPES = [
 
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate, errors }) => {
   const updateBedroomDetails = (index: number, updates: Partial<BedroomDetail>) => {
-    const newBedroomDetails = [...data.bedroomDetails];
+    const newBedroomDetails = [...(data.bed_types || [])];
     newBedroomDetails[index] = { ...newBedroomDetails[index], ...updates };
-    onUpdate({ bedroomDetails: newBedroomDetails });
+    onUpdate({ bed_types: newBedroomDetails });
   };
 
   const addSleepingArrangement = (arrangement: string) => {
@@ -75,7 +75,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate, error
         {[...Array(data.bedrooms)].map((_, index) => (
           <div key={index} className="flex space-x-4 mb-2">
             <select 
-              value={data.bedroomDetails[index]?.type || ''}
+              value={data.bed_types?.[index]?.type || ''}
               onChange={(e) => updateBedroomDetails(index, { type: e.target.value })}
               className="border rounded p-2"
             >
@@ -87,7 +87,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate, error
             <Input 
               type="number" 
               placeholder="Number of Beds"
-              value={data.bedroomDetails[index]?.beds || 1}
+              value={data.bed_types?.[index]?.beds || 1}
               onChange={(e) => updateBedroomDetails(index, { beds: parseInt(e.target.value) })}
               min={1}
             />
@@ -120,8 +120,8 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate, error
         <Label>Maximum Guests</Label>
         <Input 
           type="number" 
-          value={data.maxGuests}
-          onChange={(e) => onUpdate({ maxGuests: parseInt(e.target.value) })}
+          value={data.max_guests}
+          onChange={(e) => onUpdate({ max_guests: parseInt(e.target.value) })}
           min={1}
           className={errors?.maxGuests ? 'border-red-500' : ''}
         />
@@ -134,8 +134,8 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate, error
         <Label>Extra Beds Available</Label>
         <Input 
           type="number" 
-          value={data.extraBeds}
-          onChange={(e) => onUpdate({ extraBeds: parseInt(e.target.value) })}
+          value={data.extra_beds}
+          onChange={(e) => onUpdate({ extra_beds: parseInt(e.target.value) })}
           min={0}
         />
       </div>
