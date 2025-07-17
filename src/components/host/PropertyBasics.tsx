@@ -9,11 +9,19 @@ import LocationPicker from "./LocationPicker";
 interface PropertyBasicsProps {
   data: any;
   onUpdate: (data: any) => void;
+  errors?: Record<string, string>;
 }
 
-const PropertyBasics = ({ data, onUpdate }: PropertyBasicsProps) => {
+const PropertyBasics = ({ data, onUpdate, errors = {} }: PropertyBasicsProps) => {
   const propertyTypes = [
     "Apartment", "House", "Villa", "Studio", "Loft", "Penthouse"
+  ];
+
+  const tunisianGovernorates = [
+    "Tunis", "Ariana", "Ben Arous", "Manouba", "Nabeul", "Zaghouan", "Bizerte", 
+    "Béja", "Jendouba", "Le Kef", "Siliana", "Kairouan", "Kasserine", "Sidi Bouzid", 
+    "Sousse", "Monastir", "Mahdia", "Sfax", "Gafsa", "Tozeur", "Kebili", "Gabès", 
+    "Medenine", "Tataouine"
   ];
 
   const tunisianCitiesAndTowns = [
@@ -90,12 +98,20 @@ const PropertyBasics = ({ data, onUpdate }: PropertyBasicsProps) => {
     "Sousse Ville", "Kalaa Kebira", "Kalaa Seghira", "Msaken", "Akouda", "Hammam Sousse", "Enfidha"
   ];
 
+  const getInputClassName = (fieldName: string) => {
+    return errors[fieldName] ? "border-red-500 focus:border-red-500" : "";
+  };
+
+  const getSelectClassName = (fieldName: string) => {
+    return errors[fieldName] ? "border-red-500" : "";
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <Label htmlFor="propertyType">Property Type</Label>
+        <Label htmlFor="propertyType">Property Type *</Label>
         <Select value={data.propertyType} onValueChange={(value) => onUpdate({ propertyType: value })}>
-          <SelectTrigger>
+          <SelectTrigger className={getSelectClassName('propertyType')}>
             <SelectValue placeholder="Select property type" />
           </SelectTrigger>
           <SelectContent>
@@ -104,16 +120,23 @@ const PropertyBasics = ({ data, onUpdate }: PropertyBasicsProps) => {
             ))}
           </SelectContent>
         </Select>
+        {errors.propertyType && (
+          <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
+        )}
       </div>
 
       <div>
-        <Label htmlFor="title">Property Title</Label>
+        <Label htmlFor="title">Property Title *</Label>
         <Input
           id="title"
           value={data.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           placeholder="e.g., Beautiful apartment in Tunis center"
+          className={getInputClassName('title')}
         />
+        {errors.title && (
+          <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+        )}
       </div>
 
       <div>
@@ -124,7 +147,43 @@ const PropertyBasics = ({ data, onUpdate }: PropertyBasicsProps) => {
           onChange={(e) => onUpdate({ description: e.target.value })}
           placeholder="Describe your property..."
           rows={4}
+          className={getInputClassName('description')}
         />
+        {errors.description && (
+          <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="governorate">Governorate *</Label>
+        <SearchableSelect
+          value={data.governorate}
+          onValueChange={(value) => onUpdate({ governorate: value })}
+          options={tunisianGovernorates}
+          placeholder="Select governorate"
+          searchPlaceholder="Search governorates..."
+          emptyMessage="No governorate found."
+          className={getSelectClassName('governorate')}
+        />
+        {errors.governorate && (
+          <p className="text-red-500 text-sm mt-1">{errors.governorate}</p>
+        )}
+      </div>
+
+      <div>
+        <Label>City/Town *</Label>
+        <SearchableSelect
+          value={data.city}
+          onValueChange={(value) => onUpdate({ city: value })}
+          options={tunisianCitiesAndTowns}
+          placeholder="Select city or town"
+          searchPlaceholder="Search cities and towns..."
+          emptyMessage="No city found."
+          className={getSelectClassName('city')}
+        />
+        {errors.city && (
+          <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+        )}
       </div>
 
       <div>
@@ -134,19 +193,11 @@ const PropertyBasics = ({ data, onUpdate }: PropertyBasicsProps) => {
           value={data.address}
           onChange={(e) => onUpdate({ address: e.target.value })}
           placeholder="Full address"
+          className={getInputClassName('address')}
         />
-      </div>
-
-      <div>
-        <Label>City/Town</Label>
-        <SearchableSelect
-          value={data.city}
-          onValueChange={(value) => onUpdate({ city: value })}
-          options={tunisianCitiesAndTowns}
-          placeholder="Select city or town"
-          searchPlaceholder="Search cities and towns..."
-          emptyMessage="No city found."
-        />
+        {errors.address && (
+          <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+        )}
       </div>
 
       <LocationPicker data={data} onUpdate={onUpdate} />

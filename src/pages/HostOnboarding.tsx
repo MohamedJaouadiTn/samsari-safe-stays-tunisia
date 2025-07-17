@@ -19,6 +19,7 @@ import PropertyReview from "@/components/host/PropertyReview";
 const HostOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -32,12 +33,15 @@ const HostOnboarding = () => {
     address: "",
     latitude: null,
     longitude: null,
+    google_maps_url: "",
     bedrooms: 1,
     bathrooms: 1,
     maxGuests: 4,
     extraBeds: 0,
-    bedTypes: [],
-    visitorPolicy: "morning_only",
+    bedroomDetails: [],
+    visitorsAllowed: false,
+    overnightVisitors: false,
+    daytimeVisitors: true,
     amenities: [],
     photos: [],
     basePrice: "",
@@ -61,68 +65,81 @@ const HostOnboarding = () => {
   const CurrentStepComponent = currentStepData?.component;
 
   const validateCurrentStep = () => {
+    const newErrors: Record<string, string> = {};
+    
     switch (currentStep) {
       case 1: // Property Basics
-        if (!formData.propertyType || !formData.title || !formData.governorate || !formData.city) {
-          toast({
-            title: "Missing Information",
-            description: "Please fill in all required fields",
-            variant: "destructive"
-          });
-          return false;
+        if (!formData.propertyType) {
+          newErrors.propertyType = "Please select a property type";
+        }
+        if (!formData.title?.trim()) {
+          newErrors.title = "Please enter a property title";
+        }
+        if (!formData.governorate) {
+          newErrors.governorate = "Please select a governorate";
+        }
+        if (!formData.city) {
+          newErrors.city = "Please select a city";
         }
         break;
+        
       case 2: // Property Details
         if (!formData.maxGuests || formData.maxGuests < 4) {
-          toast({
-            title: "Invalid Guest Count",
-            description: "Maximum guests must be at least 4",
-            variant: "destructive"
-          });
-          return false;
+          newErrors.maxGuests = "Maximum guests must be at least 4";
         }
         break;
+        
       case 3: // Photos
         const requiredPhotoTypes = ['exterior', 'kitchen', 'bathroom', 'living_room'];
         const hasAllRequired = requiredPhotoTypes.every(type => 
           formData.photos.some((photo: any) => photo.type === type)
         );
-        const hasBedroomPhotos = formData.bedrooms <= new Set(
-          formData.photos.filter((photo: any) => photo.type?.startsWith('bedroom_')).map((p: any) => p.type)
-        ).size;
         
-        if (!hasAllRequired || !hasBedroomPhotos) {
-          toast({
-            title: "Missing Required Photos",
-            description: "Please upload all required room photos",
-            variant: "destructive"
-          });
-          return false;
+        const uniqueBedroomTypes = new Set(
+          formData.photos.filter((photo: any) => photo.type?.startsWith('bedroom_')).map((p: any) => p.type)
+        );
+        const hasBedroomPhotos = formData.bedrooms <= uniqueBedroomTypes.size;
+        
+        if (!hasAllRequired) {
+          newErrors.photos = "Please upload photos for exterior, kitchen, bathroom, and living room";
+        }
+        if (!hasBedroomPhotos) {
+          newErrors.photos = (newErrors.photos || "") + " Please upload photos for all bedrooms";
         }
         break;
+        
       case 4: // Pricing
         if (!formData.basePrice || parseFloat(formData.basePrice) <= 0) {
-          toast({
-            title: "Invalid Price",
-            description: "Please set a valid base price",
-            variant: "destructive"
-          });
-          return false;
+          newErrors.basePrice = "Please enter a valid base price";
         }
         break;
     }
+    
+    setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length > 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields highlighted in red",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
     return true;
   };
 
   const handleNext = () => {
     if (!validateCurrentStep()) return;
     
+    setErrors({});
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handlePrevious = () => {
+    setErrors({});
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
@@ -130,6 +147,14 @@ const HostOnboarding = () => {
 
   const handleDataUpdate = (newData: any) => {
     setFormData({ ...formData, ...newData });
+    // Clear related errors when user updates data
+    const updatedErrors = { ...errors };
+    Object.keys(newData).forEach(key => {
+      if (updatedErrors[key]) {
+        delete updatedErrors[key];
+      }
+    });
+    setErrors(updatedErrors);
   };
 
   const publishListing = async () => {
@@ -148,12 +173,14 @@ const HostOnboarding = () => {
         address: formData.address,
         coordinates: formData.latitude && formData.longitude ? 
           { lat: formData.latitude, lng: formData.longitude } : null,
+        google_maps_url: formData.google_maps_url || null,
         bedrooms: formData.bedrooms,
         bathrooms: formData.bathrooms,
         max_guests: formData.maxGuests,
         extra_beds: formData.extraBeds,
-        bed_types: formData.bedTypes,
-        visitor_policy: formData.visitorPolicy,
+        bed_types: formData.bedroomDetails || [],
+        visitor_policy: formData.visitorsAllowed ? 
+          (formData.overnightVisitors ? 'overnight_allowed' : 'morning_only') : 'no_visitors',
         amenities: formData.amenities,
         photos: formData.photos,
         price_per_night: parseFloat(formData.basePrice),
@@ -220,7 +247,8 @@ const HostOnboarding = () => {
               {CurrentStepComponent && (
                 <CurrentStepComponent 
                   data={formData} 
-                  onUpdate={handleDataUpdate} 
+                  onUpdate={handleDataUpdate}
+                  errors={errors}
                 />
               )}
             </CardContent>

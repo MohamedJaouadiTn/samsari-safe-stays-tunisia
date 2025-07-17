@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          updated_at: string
+          user_email: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          updated_at?: string
+          user_email: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          updated_at?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           check_in_date: string
@@ -152,6 +176,7 @@ export type Database = {
           created_at: string
           description: string | null
           extra_beds: number | null
+          google_maps_url: string | null
           governorate: string
           host_id: string
           id: string
@@ -177,6 +202,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           extra_beds?: number | null
+          google_maps_url?: string | null
           governorate: string
           host_id: string
           id?: string
@@ -202,6 +228,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           extra_beds?: number | null
+          google_maps_url?: string | null
           governorate?: string
           host_id?: string
           id?: string
@@ -222,7 +249,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: { user_email: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
