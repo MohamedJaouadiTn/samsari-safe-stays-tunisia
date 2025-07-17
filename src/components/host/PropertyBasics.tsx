@@ -1,7 +1,16 @@
+import React, { useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { TimePicker } from "@/components/ui/timepicker"; // Assume this exists or we'll create it
+import { Switch } from "@/components/ui/switch";
 import SearchableSelect from "@/components/SearchableSelect";
 import LocationPicker from "./LocationPicker";
 
@@ -11,8 +20,14 @@ interface PropertyBasicsProps {
   errors?: Record<string, string>;
 }
 
-const PropertyBasics = ({ data, onUpdate, errors = {} }: PropertyBasicsProps) => {
-  const propertyTypes = [
+const cancellationPolicies = [
+  "Flexible", 
+  "Moderate", 
+  "Strict", 
+  "Super Strict"
+];
+
+const propertyTypes = [
     "Apartment", "House", "Villa", "Studio", "Loft", "Penthouse"
   ];
 
@@ -105,6 +120,7 @@ const PropertyBasics = ({ data, onUpdate, errors = {} }: PropertyBasicsProps) =>
     return errors[fieldName] ? "border-red-500" : "";
   };
 
+const PropertyBasics = ({ data, onUpdate, errors = {} }: PropertyBasicsProps) => {
   return (
     <div className="space-y-6">
       <div>
@@ -203,6 +219,59 @@ const PropertyBasics = ({ data, onUpdate, errors = {} }: PropertyBasicsProps) =>
       </div>
 
       <LocationPicker data={data} onUpdate={onUpdate} />
+      
+      <div>
+        <Label>Minimum Stay (Nights)</Label>
+        <Input 
+          type="number" 
+          value={data.minimum_stay || 1}
+          onChange={(e) => onUpdate({ minimum_stay: parseInt(e.target.value) })}
+          min={1}
+        />
+      </div>
+
+      <div>
+        <Label>Cancellation Policy</Label>
+        <Select 
+          value={data.cancellation_policy || "Moderate"}
+          onValueChange={(value) => onUpdate({ cancellation_policy: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select Cancellation Policy" />
+          </SelectTrigger>
+          <SelectContent>
+            {cancellationPolicies.map((policy) => (
+              <SelectItem key={policy} value={policy}>{policy}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Check-in Time</Label>
+          <TimePicker 
+            value={data.check_in_time}
+            onValueChange={(time) => onUpdate({ check_in_time: time })}
+          />
+        </div>
+        <div>
+          <Label>Check-out Time</Label>
+          <TimePicker 
+            value={data.check_out_time}
+            onValueChange={(time) => onUpdate({ check_out_time: time })}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label>House Rules</Label>
+        <Textarea
+          value={data.house_rules || ""}
+          onChange={(e) => onUpdate({ house_rules: e.target.value })}
+          placeholder="Describe your house rules, smoking policy, pet policy, etc."
+        />
+      </div>
     </div>
   );
 };
