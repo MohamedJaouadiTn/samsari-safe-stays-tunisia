@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,7 +110,10 @@ const PropertyDetails = () => {
 
     // Add property image if available
     if (property?.photos && Array.isArray(property.photos) && property.photos.length > 0) {
-      const firstImage = property.photos[0]?.url || "/placeholder.svg";
+      // Fix: Type check and safely access the url property
+      const photoObj = property.photos[0] as any;
+      const firstImage = photoObj && typeof photoObj === 'object' && photoObj.url ? photoObj.url : "/placeholder.svg";
+      
       ogTags.push(
         { property: 'og:image', content: firstImage },
         { property: 'twitter:image', content: firstImage }
@@ -133,7 +135,10 @@ const PropertyDetails = () => {
     if (!photos || !Array.isArray(photos) || photos.length === 0) {
       return ["/placeholder.svg"];
     }
-    return photos.map((photo: any) => photo.url || "/placeholder.svg");
+    // Fix: Type check and safely access the url property
+    return photos.map((photo: any) => {
+      return (photo && typeof photo === 'object' && photo.url) ? photo.url : "/placeholder.svg";
+    });
   };
 
   const getAmenityIcon = (amenity: string) => {
