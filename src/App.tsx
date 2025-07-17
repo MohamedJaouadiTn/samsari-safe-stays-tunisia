@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import BecomeHost from "./pages/BecomeHost";
 import HostOnboarding from "./pages/HostOnboarding";
 import SearchResults from "./pages/SearchResults";
+import PropertyDetails from "./pages/PropertyDetails";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/become-host" element={<BecomeHost />} />
               <Route path="/host/onboarding" element={<HostOnboarding />} />
               <Route path="/search" element={<SearchResults />} />
+              <Route path="/property/:id" element={<PropertyDetails />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

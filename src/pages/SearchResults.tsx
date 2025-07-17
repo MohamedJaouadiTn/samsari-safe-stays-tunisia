@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,27 +9,29 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Users, Bed, Bath, Star, Filter, Search } from "lucide-react";
+import { MapPin, Users, Bed, Bath, Star, Filter, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { tunisianCities } from "@/components/TunisianCities";
+import { tunisianCities, getGovernoratesByCity } from "@/components/TunisianCities";
 
 type Property = Tables<"properties">;
 
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   
-  // Search filters
+  // Initialize filters from URL params
   const [filters, setFilters] = useState({
     city: searchParams.get("city") || "",
     governorate: searchParams.get("governorate") || "",
+    location: searchParams.get("location") || "",
     guests: parseInt(searchParams.get("guests") || "1"),
     priceRange: [0, 1000],
     propertyType: "",
@@ -38,6 +40,15 @@ const SearchResults = () => {
   });
 
   useEffect(() => {
+    // Update filters when URL changes
+    setFilters(prev => ({
+      ...prev,
+      city: searchParams.get("city") || "",
+      governorate: searchParams.get("governorate") || "",
+      location: searchParams.get("location") || "",
+      guests: parseInt(searchParams.get("guests") || "1"),
+    }));
+    
     fetchProperties();
   }, [searchParams]);
 
@@ -50,9 +61,10 @@ const SearchResults = () => {
         .eq("is_public", true)
         .eq("status", "published");
 
-      // Apply filters
+      // Apply filters from URL params
       const city = searchParams.get("city");
       const governorate = searchParams.get("governorate");
+      const location = searchParams.get("location");
       const guests = searchParams.get("guests");
 
       if (city) {
@@ -60,6 +72,10 @@ const SearchResults = () => {
       }
       if (governorate) {
         query = query.eq("governorate", governorate);
+      }
+      if (location) {
+        // Search in both city and governorate
+        query = query.or(`city.ilike.%${location}%,governorate.ilike.%${location}%`);
       }
       if (guests) {
         query = query.gte("max_guests", parseInt(guests));
@@ -92,12 +108,28 @@ const SearchResults = () => {
 
   const applyFilters = () => {
     const params = new URLSearchParams();
+    
     if (filters.city) params.set("city", filters.city);
     if (filters.governorate) params.set("governorate", filters.governorate);
+    if (filters.location) params.set("location", filters.location);
     if (filters.guests > 1) params.set("guests", filters.guests.toString());
     
     setSearchParams(params);
     setShowFilters(false);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      city: "",
+      governorate: "",
+      location: "",
+      guests: 1,
+      priceRange: [0, 1000],
+      propertyType: "",
+      bedrooms: "",
+      amenities: [],
+    });
+    setSearchParams({});
   };
 
   const getPropertyImage = (photos: any) => {
@@ -106,11 +138,24 @@ const SearchResults = () => {
     return exteriorPhoto?.url || photos[0]?.url || "/placeholder.svg";
   };
 
-  const getPropertyStatus = (property: Property) => {
-    // This would typically check booking status from a bookings table
-    // For now, we'll simulate some statuses
-    const statuses = ['Available', 'Reserved', 'Occupied'];
-    return statuses[Math.floor(Math.random() * statuses.length)];
+  const getPropertyStatus = async (propertyId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("property_id", propertyId)
+        .gte("check_out_date", new Date().toISOString().split('T')[0]);
+
+      if (error) {
+        console.error("Error checking bookings:", error);
+        return "Available";
+      }
+
+      return data && data.length > 0 ? "Reserved" : "Available";
+    } catch (error) {
+      console.error("Error:", error);
+      return "Available";
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -155,12 +200,32 @@ const SearchResults = () => {
           <div className={`lg:w-1/4 ${showFilters ? 'block' : 'hidden lg:block'}`}>
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Filter className="h-5 w-5" />
-                  Filters
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-5 w-5" />
+                    Filters
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div>
+                  <Label>Location</Label>
+                  <Input
+                    placeholder="Search cities or governorates..."
+                    value={filters.location}
+                    onChange={(e) => setFilters({...filters, location: e.target.value})}
+                  />
+                </div>
+
                 <div>
                   <Label>City</Label>
                   <Select value={filters.city} onValueChange={(value) => setFilters({...filters, city: value})}>
@@ -259,7 +324,8 @@ const SearchResults = () => {
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold">
                 {filteredProperties.length} Properties Found
-                {searchParams.get("city") && ` in ${searchParams.get("city")}`}
+                {(searchParams.get("city") || searchParams.get("location")) && 
+                  ` in ${searchParams.get("city") || searchParams.get("location")}`}
               </h1>
               <Button
                 variant="outline"
@@ -275,7 +341,7 @@ const SearchResults = () => {
               <Card>
                 <CardContent className="text-center py-12">
                   <p className="text-muted-foreground">No properties found matching your criteria.</p>
-                  <Button variant="outline" onClick={() => setSearchParams({})} className="mt-4">
+                  <Button variant="outline" onClick={clearFilters} className="mt-4">
                     Clear Filters
                   </Button>
                 </CardContent>
@@ -292,8 +358,8 @@ const SearchResults = () => {
                           className="w-full h-48 md:h-full object-cover"
                         />
                         <div className="absolute top-2 right-2">
-                          <Badge className={getStatusColor(getPropertyStatus(property))}>
-                            {getPropertyStatus(property)}
+                          <Badge className="bg-green-100 text-green-800">
+                            Available
                           </Badge>
                         </div>
                       </div>
@@ -342,7 +408,9 @@ const SearchResults = () => {
                               </Badge>
                             )}
                           </div>
-                          <Button>View Details</Button>
+                          <Button onClick={() => navigate(`/property/${property.id}`)}>
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </div>
