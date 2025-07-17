@@ -11,9 +11,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 interface PropertyPricingProps {
   data: any;
   onUpdate: (data: any) => void;
+  errors?: Record<string, string>;
 }
 
-const PropertyPricing = ({ data, onUpdate }: PropertyPricingProps) => {
+const PropertyPricing = ({ data, onUpdate, errors }: PropertyPricingProps) => {
   const [basePrice, setBasePrice] = useState(data.price_per_night || 0);
 
   const handlePriceChange = (value: string) => {
@@ -52,12 +53,15 @@ const PropertyPricing = ({ data, onUpdate }: PropertyPricingProps) => {
                   value={basePrice}
                   onChange={(e) => handlePriceChange(e.target.value)}
                   placeholder="Enter price"
-                  className="pr-12"
+                  className={`pr-12 ${errors?.price_per_night ? 'border-red-500' : ''}`}
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
                   TND
                 </span>
               </div>
+              {errors?.price_per_night && (
+                <p className="text-sm text-red-500 mt-1">{errors.price_per_night}</p>
+              )}
               <p className="text-sm text-muted-foreground mt-1">
                 This is the amount guests will pay per night
               </p>

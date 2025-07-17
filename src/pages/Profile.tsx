@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,14 @@ import IdVerification from "@/components/IdVerification";
 import ChangePassword from "@/components/ChangePassword";
 import MyProperties from "@/components/host/MyProperties";
 import Inbox from "@/components/messaging/Inbox";
+import ProfilePictureUpload from "@/components/ProfilePictureUpload";
 import { Calendar } from "lucide-react";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     full_name: "",
@@ -29,6 +32,8 @@ const Profile = () => {
     is_host: false,
     verification_status: "unverified"
   });
+
+  const defaultTab = searchParams.get('tab') || 'profile';
 
   useEffect(() => {
     if (!user) {
@@ -116,6 +121,10 @@ const Profile = () => {
     setProfile({ ...profile, verification_status: 'pending' });
   };
 
+  const handleAvatarUpdate = (newUrl: string) => {
+    setProfile({ ...profile, avatar_url: newUrl });
+  };
+
   if (!user) return null;
 
   return (
@@ -131,7 +140,7 @@ const Profile = () => {
             </Button>
           </div>
 
-          <Tabs defaultValue="profile" className="space-y-6">
+          <Tabs defaultValue={defaultTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
@@ -150,6 +159,15 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <div className="flex justify-center mb-6">
+                    <ProfilePictureUpload
+                      currentAvatarUrl={profile.avatar_url}
+                      userInitial={profile.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
+                      userId={user.id}
+                      onAvatarUpdate={handleAvatarUpdate}
+                    />
+                  </div>
+                  
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="full_name">Full Name</Label>

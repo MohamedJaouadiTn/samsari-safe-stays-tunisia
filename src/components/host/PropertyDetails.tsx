@@ -19,13 +19,14 @@ interface PropertyDetailsProps {
     sleeping_arrangements: any[];
   };
   onUpdate: (data: any) => void;
+  errors?: Record<string, string>;
 }
 
 const BEDROOM_TYPES = [
   'Single', 'Double', 'Twin', 'Bunk', 'Sofa Bed'
 ];
 
-const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate }) => {
+const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate, errors }) => {
   const updateBedroomDetails = (index: number, updates: Partial<BedroomDetail>) => {
     const newBedroomDetails = [...data.bedroomDetails];
     newBedroomDetails[index] = { ...newBedroomDetails[index], ...updates };
@@ -48,7 +49,25 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate }) => 
           value={data.bedrooms}
           onChange={(e) => onUpdate({ bedrooms: parseInt(e.target.value) })}
           min={1}
+          className={errors?.bedrooms ? 'border-red-500' : ''}
         />
+        {errors?.bedrooms && (
+          <p className="text-sm text-red-500 mt-1">{errors.bedrooms}</p>
+        )}
+      </div>
+
+      <div>
+        <Label>Number of Bathrooms</Label>
+        <Input 
+          type="number" 
+          value={data.bathrooms}
+          onChange={(e) => onUpdate({ bathrooms: parseInt(e.target.value) })}
+          min={1}
+          className={errors?.bathrooms ? 'border-red-500' : ''}
+        />
+        {errors?.bathrooms && (
+          <p className="text-sm text-red-500 mt-1">{errors.bathrooms}</p>
+        )}
       </div>
 
       <div>
@@ -104,7 +123,11 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ data, onUpdate }) => 
           value={data.maxGuests}
           onChange={(e) => onUpdate({ maxGuests: parseInt(e.target.value) })}
           min={1}
+          className={errors?.maxGuests ? 'border-red-500' : ''}
         />
+        {errors?.maxGuests && (
+          <p className="text-sm text-red-500 mt-1">{errors.maxGuests}</p>
+        )}
       </div>
 
       <div>

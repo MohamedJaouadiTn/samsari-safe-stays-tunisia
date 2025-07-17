@@ -44,7 +44,7 @@ const HostOnboarding = () => {
     daytimeVisitors: true,
     amenities: [],
     photos: [],
-    basePrice: "",
+    price_per_night: 0,
     currency: "TND",
     isPublic: true,
     bookingEnabled: true,
@@ -96,8 +96,8 @@ const HostOnboarding = () => {
         break;
         
       case 2: // Property Details
-        if (!formData.maxGuests || formData.maxGuests < 4) {
-          newErrors.maxGuests = "Maximum guests must be at least 4";
+        if (!formData.maxGuests || formData.maxGuests < 1) {
+          newErrors.maxGuests = "Maximum guests must be at least 1";
         }
         break;
         
@@ -121,8 +121,8 @@ const HostOnboarding = () => {
         break;
         
       case 4: // Pricing
-        if (!formData.basePrice || parseFloat(formData.basePrice) <= 0) {
-          newErrors.basePrice = "Please enter a valid base price";
+        if (!formData.price_per_night || formData.price_per_night <= 0) {
+          newErrors.price_per_night = "Please enter a valid price per night";
         }
         break;
     }
@@ -195,7 +195,7 @@ const HostOnboarding = () => {
           (formData.overnightVisitors ? 'overnight_allowed' : 'morning_only') : 'no_visitors',
         amenities: formData.amenities,
         photos: formData.photos,
-        price_per_night: parseFloat(formData.basePrice),
+        price_per_night: formData.price_per_night,
         is_public: formData.isPublic,
         booking_enabled: formData.bookingEnabled,
         status: 'published',
