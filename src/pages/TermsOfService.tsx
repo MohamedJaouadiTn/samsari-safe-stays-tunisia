@@ -26,7 +26,7 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  By accessing and using Samsari.tn, you accept and agree to be bound by the terms 
+                  By accessing and using Samsari, you accept and agree to be bound by the terms 
                   and provision of this agreement. If you do not agree to abide by the above, 
                   please do not use this service.
                 </p>
@@ -39,7 +39,7 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Samsari.tn is a platform that connects property owners (hosts) with travelers 
+                  Samsari is a platform that connects property owners (hosts) with travelers 
                   (guests) seeking short-term accommodations in Tunisia. We facilitate bookings 
                   but are not party to the rental agreements between hosts and guests.
                 </p>
@@ -80,7 +80,7 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Samsari.tn charges service fees for facilitating bookings. Payment processing 
+                  Samsari charges service fees for facilitating bookings. Payment processing 
                   is handled through secure, encrypted channels. Refund policies are determined 
                   by individual hosts and clearly stated in property listings.
                 </p>
@@ -93,7 +93,7 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Samsari.tn acts as an intermediary platform. We are not responsible for the 
+                  Samsari acts as an intermediary platform. We are not responsible for the 
                   actions of hosts or guests, property conditions, or disputes between parties. 
                   Users engage at their own risk and are encouraged to purchase appropriate insurance.
                 </p>
