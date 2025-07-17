@@ -1,114 +1,134 @@
-
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, User, Menu, LogOut } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { Shield, User, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import LanguageSelector from "./LanguageSelector";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
-  const { t } = useLanguage();
-  const { user, signOut, loading } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2">
-          <Shield className="h-8 w-8 text-primary" />
-          <div className="flex flex-col">
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2">
+            <Shield className="h-8 w-8 text-primary" />
             <span className="text-xl font-bold text-primary">Samsari</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link to="/" className="text-gray-700 hover:text-primary transition-colors">
+              Home
+            </Link>
+            <Link to="/safety" className="text-gray-700 hover:text-primary transition-colors">
+              Safety
+            </Link>
+            <Link to="/help" className="text-gray-700 hover:text-primary transition-colors">
+              Help
+            </Link>
+            <Link to="/become-host" className="text-gray-700 hover:text-primary transition-colors">
+              Become a Host
+            </Link>
+          </nav>
+
+          {/* Right side buttons */}
+          <div className="hidden md:flex items-center space-x-4">
+            <LanguageSelector />
+            {user ? (
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/profile")}
+                className="flex items-center space-x-2"
+              >
+                <User className="h-4 w-4" />
+                <span>Profile</span>
+              </Button>
+            ) : (
+              <Button onClick={() => navigate("/auth")}>
+                Sign In
+              </Button>
+            )}
           </div>
-        </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
-          <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">
-            {t('header.explore')}
-          </Link>
-          <Link to="/become-host" className="text-sm font-medium hover:text-primary transition-colors">
-            {t('header.become_host')}
-          </Link>
-          <Link to="/safety" className="text-sm font-medium hover:text-primary transition-colors">
-            {t('header.safety')}
-          </Link>
-          <Link to="/help" className="text-sm font-medium hover:text-primary transition-colors">
-            {t('header.help')}
-          </Link>
-        </nav>
-
-        {/* Auth Buttons & Language Selector */}
-        <div className="flex items-center space-x-2">
-          <LanguageSelector />
-          
-          {!loading && (
-            <>
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                      <User className="w-4 h-4" />
-                      <span className="hidden sm:inline">
-                        {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate('/profile')}>
-                      <User className="w-4 h-4 mr-2" />
-                      Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/bookings')}>
-                      My Bookings
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="hidden sm:flex"
-                    onClick={() => navigate('/auth')}
-                  >
-                    {t('header.login')}
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    className="bg-primary hover:bg-primary/90"
-                    onClick={() => navigate('/auth')}
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    {t('header.signup')}
-                  </Button>
-                </>
-              )}
-            </>
-          )}
-          
-          {/* Mobile Menu */}
-          <Button variant="ghost" size="sm" className="md:hidden">
-            <Menu className="h-4 w-4" />
-          </Button>
+          {/* Mobile menu button */}
+          <button
+            className="md:hidden p-2"
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4">
+            <nav className="flex flex-col space-y-4">
+              <Link 
+                to="/" 
+                className="text-gray-700 hover:text-primary transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link 
+                to="/safety" 
+                className="text-gray-700 hover:text-primary transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Safety
+              </Link>
+              <Link 
+                to="/help" 
+                className="text-gray-700 hover:text-primary transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Help
+              </Link>
+              <Link 
+                to="/become-host" 
+                className="text-gray-700 hover:text-primary transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Become a Host
+              </Link>
+              <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
+                <LanguageSelector />
+                {user ? (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      navigate("/profile");
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex items-center space-x-2"
+                  >
+                    <User className="h-4 w-4" />
+                    <span>Profile</span>
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => {
+                      navigate("/auth");
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                )}
+              </div>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

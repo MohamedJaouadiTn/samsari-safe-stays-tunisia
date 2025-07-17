@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,7 @@ import TermsOfService from "./pages/TermsOfService";
 import Privacy from "./pages/Privacy";
 import Help from "./pages/Help";
 import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 import BecomeHost from "./pages/BecomeHost";
 import HostOnboarding from "./pages/HostOnboarding";
 import NotFound from "./pages/NotFound";
@@ -29,6 +29,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/safety" element={<Safety />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<Privacy />} />
