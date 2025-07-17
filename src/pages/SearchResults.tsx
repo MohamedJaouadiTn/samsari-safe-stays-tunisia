@@ -11,21 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, Bed, Bath, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
-interface Property {
-  id: string;
-  title: string;
-  description: string;
-  property_type: string;
-  governorate: string;
-  city: string;
-  bedrooms: number;
-  bathrooms: number;
-  max_guests: number;
-  price_per_night: number;
-  photos: any[];
-  amenities: string[];
-}
+type Property = Tables<"properties">;
 
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,9 +102,9 @@ const SearchResults = () => {
     });
   };
 
-  const getPropertyImage = (photos: any[]) => {
-    if (!photos || photos.length === 0) return "/placeholder.svg";
-    const exteriorPhoto = photos.find(p => p.type === 'exterior');
+  const getPropertyImage = (photos: any) => {
+    if (!photos || !Array.isArray(photos) || photos.length === 0) return "/placeholder.svg";
+    const exteriorPhoto = photos.find((p: any) => p.type === 'exterior');
     return exteriorPhoto?.url || photos[0]?.url || "/placeholder.svg";
   };
 
