@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
@@ -12,16 +12,18 @@ const SAFETY_FEATURES = [
 ];
 
 interface SafetyFeaturesFormProps {
-  data: string[];
-  onUpdate: (features: string[]) => void;
+  data: { safety_features?: string[] };
+  onUpdate: (data: { safety_features: string[] }) => void;
 }
 
 const SafetyFeaturesForm: React.FC<SafetyFeaturesFormProps> = ({ data, onUpdate }) => {
   const handleToggle = (feature: string) => {
-    const newFeatures = data.includes(feature)
-      ? data.filter(f => f !== feature)
-      : [...data, feature];
-    onUpdate(newFeatures);
+    const currentFeatures = data.safety_features || [];
+    const newFeatures = currentFeatures.includes(feature)
+      ? currentFeatures.filter(f => f !== feature)
+      : [...currentFeatures, feature];
+    
+    onUpdate({ safety_features: newFeatures });
   };
 
   return (
@@ -32,7 +34,7 @@ const SafetyFeaturesForm: React.FC<SafetyFeaturesFormProps> = ({ data, onUpdate 
           <div key={feature.id} className="flex items-center space-x-2">
             <Checkbox 
               id={feature.id}
-              checked={data.includes(feature.id)}
+              checked={(data.safety_features || []).includes(feature.id)}
               onCheckedChange={() => handleToggle(feature.id)}
             />
             <Label htmlFor={feature.id}>{feature.label}</Label>

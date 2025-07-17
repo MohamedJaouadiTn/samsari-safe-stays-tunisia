@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { TimePicker } from "@/components/ui/timepicker"; // Assume this exists or we'll create it
+import { TimePicker } from "@/components/ui/timepicker";
 import { Switch } from "@/components/ui/switch";
 import SearchableSelect from "@/components/SearchableSelect";
 import LocationPicker from "./LocationPicker";
@@ -112,168 +112,168 @@ const propertyTypes = [
     "Sousse Ville", "Kalaa Kebira", "Kalaa Seghira", "Msaken", "Akouda", "Hammam Sousse", "Enfidha"
   ];
 
-  const getInputClassName = (fieldName: string) => {
-    return errors[fieldName] ? "border-red-500 focus:border-red-500" : "";
-  };
+  const PropertyBasics = ({ data, onUpdate, errors = {} }: PropertyBasicsProps) => {
+    const getInputClassName = (fieldName: string) => {
+      return errors[fieldName] ? "border-red-500 focus:border-red-500" : "";
+    };
 
-  const getSelectClassName = (fieldName: string) => {
-    return errors[fieldName] ? "border-red-500" : "";
-  };
+    const getSelectClassName = (fieldName: string) => {
+      return errors[fieldName] ? "border-red-500" : "";
+    };
 
-const PropertyBasics = ({ data, onUpdate, errors = {} }: PropertyBasicsProps) => {
-  return (
-    <div className="space-y-6">
-      <div>
-        <Label htmlFor="propertyType">Property Type *</Label>
-        <Select value={data.propertyType} onValueChange={(value) => onUpdate({ propertyType: value })}>
-          <SelectTrigger className={getSelectClassName('propertyType')}>
-            <SelectValue placeholder="Select property type" />
-          </SelectTrigger>
-          <SelectContent>
-            {propertyTypes.map((type) => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.propertyType && (
-          <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="title">Property Title *</Label>
-        <Input
-          id="title"
-          value={data.title}
-          onChange={(e) => onUpdate({ title: e.target.value })}
-          placeholder="e.g., Beautiful apartment in Tunis center"
-          className={getInputClassName('title')}
-        />
-        {errors.title && (
-          <p className="text-red-500 text-sm mt-1">{errors.title}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={data.description}
-          onChange={(e) => onUpdate({ description: e.target.value })}
-          placeholder="e.g., Spacious 3rd floor apartment with stunning beach view, close to restaurants and shops. Perfect for families or couples..."
-          rows={4}
-          className={getInputClassName('description')}
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          Tip: Describe the atmosphere and location features. Don't mention number of bedrooms - you'll add those in the next step.
-        </p>
-        {errors.description && (
-          <p className="text-red-500 text-sm mt-1">{errors.description}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="governorate">Governorate *</Label>
-        <SearchableSelect
-          value={data.governorate}
-          onValueChange={(value) => onUpdate({ governorate: value })}
-          options={tunisianGovernorates}
-          placeholder="Select governorate"
-          searchPlaceholder="Search governorates..."
-          emptyMessage="No governorate found."
-          className={getSelectClassName('governorate')}
-        />
-        {errors.governorate && (
-          <p className="text-red-500 text-sm mt-1">{errors.governorate}</p>
-        )}
-      </div>
-
-      <div>
-        <Label>City/Town *</Label>
-        <SearchableSelect
-          value={data.city}
-          onValueChange={(value) => onUpdate({ city: value })}
-          options={tunisianCitiesAndTowns}
-          placeholder="Select city or town"
-          searchPlaceholder="Search cities and towns..."
-          emptyMessage="No city found."
-          className={getSelectClassName('city')}
-        />
-        {errors.city && (
-          <p className="text-red-500 text-sm mt-1">{errors.city}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="address">Address</Label>
-        <Input
-          id="address"
-          value={data.address}
-          onChange={(e) => onUpdate({ address: e.target.value })}
-          placeholder="Full address"
-          className={getInputClassName('address')}
-        />
-        {errors.address && (
-          <p className="text-red-500 text-sm mt-1">{errors.address}</p>
-        )}
-      </div>
-
-      <LocationPicker data={data} onUpdate={onUpdate} />
-      
-      <div>
-        <Label>Minimum Stay (Nights)</Label>
-        <Input 
-          type="number" 
-          value={data.minimum_stay || 1}
-          onChange={(e) => onUpdate({ minimum_stay: parseInt(e.target.value) })}
-          min={1}
-        />
-      </div>
-
-      <div>
-        <Label>Cancellation Policy</Label>
-        <Select 
-          value={data.cancellation_policy || "Moderate"}
-          onValueChange={(value) => onUpdate({ cancellation_policy: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select Cancellation Policy" />
-          </SelectTrigger>
-          <SelectContent>
-            {cancellationPolicies.map((policy) => (
-              <SelectItem key={policy} value={policy}>{policy}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+    return (
+      <div className="space-y-6">
         <div>
-          <Label>Check-in Time</Label>
-          <TimePicker 
-            value={data.check_in_time}
-            onValueChange={(time) => onUpdate({ check_in_time: time })}
+          <Label htmlFor="propertyType">Property Type *</Label>
+          <Select value={data.propertyType} onValueChange={(value) => onUpdate({ propertyType: value })}>
+            <SelectTrigger className={getSelectClassName('propertyType')}>
+              <SelectValue placeholder="Select property type" />
+            </SelectTrigger>
+            <SelectContent>
+              {propertyTypes.map((type) => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.propertyType && (
+            <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="title">Property Title *</Label>
+          <Input
+            id="title"
+            value={data.title}
+            onChange={(e) => onUpdate({ title: e.target.value })}
+            placeholder="e.g., Beautiful apartment in Tunis center"
+            className={getInputClassName('title')}
+          />
+          {errors.title && (
+            <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={data.description}
+            onChange={(e) => onUpdate({ description: e.target.value })}
+            placeholder="e.g., Spacious 3rd floor apartment with stunning beach view, close to restaurants and shops. Perfect for families or couples..."
+            rows={4}
+            className={getInputClassName('description')}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Tip: Describe the atmosphere and location features. Don't mention number of bedrooms - you'll add those in the next step.
+          </p>
+          {errors.description && (
+            <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="governorate">Governorate *</Label>
+          <SearchableSelect
+            value={data.governorate}
+            onValueChange={(value) => onUpdate({ governorate: value })}
+            options={tunisianGovernorates}
+            placeholder="Select governorate"
+            searchPlaceholder="Search governorates..."
+            emptyMessage="No governorate found."
+            className={getSelectClassName('governorate')}
+          />
+          {errors.governorate && (
+            <p className="text-red-500 text-sm mt-1">{errors.governorate}</p>
+          )}
+        </div>
+
+        <div>
+          <Label>City/Town *</Label>
+          <SearchableSelect
+            value={data.city}
+            onValueChange={(value) => onUpdate({ city: value })}
+            options={tunisianCitiesAndTowns}
+            placeholder="Select city or town"
+            searchPlaceholder="Search cities and towns..."
+            emptyMessage="No city found."
+            className={getSelectClassName('city')}
+          />
+          {errors.city && (
+            <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="address">Address</Label>
+          <Input
+            id="address"
+            value={data.address}
+            onChange={(e) => onUpdate({ address: e.target.value })}
+            placeholder="Full address"
+            className={getInputClassName('address')}
+          />
+          {errors.address && (
+            <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+          )}
+        </div>
+
+        <LocationPicker data={data} onUpdate={onUpdate} />
+        
+        <div>
+          <Label>Minimum Stay (Nights)</Label>
+          <Input 
+            type="number" 
+            value={data.minimum_stay || 1}
+            onChange={(e) => onUpdate({ minimum_stay: parseInt(e.target.value) })}
+            min={1}
           />
         </div>
+
         <div>
-          <Label>Check-out Time</Label>
-          <TimePicker 
-            value={data.check_out_time}
-            onValueChange={(time) => onUpdate({ check_out_time: time })}
+          <Label>Cancellation Policy</Label>
+          <Select 
+            value={data.cancellation_policy || "Moderate"}
+            onValueChange={(value) => onUpdate({ cancellation_policy: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Cancellation Policy" />
+            </SelectTrigger>
+            <SelectContent>
+              {cancellationPolicies.map((policy) => (
+                <SelectItem key={policy} value={policy}>{policy}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Check-in Time</Label>
+            <TimePicker 
+              value={data.check_in_time}
+              onValueChange={(time) => onUpdate({ check_in_time: time })}
+            />
+          </div>
+          <div>
+            <Label>Check-out Time</Label>
+            <TimePicker 
+              value={data.check_out_time}
+              onValueChange={(time) => onUpdate({ check_out_time: time })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>House Rules</Label>
+          <Textarea
+            value={data.house_rules || ""}
+            onChange={(e) => onUpdate({ house_rules: e.target.value })}
+            placeholder="Describe your house rules, smoking policy, pet policy, etc."
           />
         </div>
       </div>
-
-      <div>
-        <Label>House Rules</Label>
-        <Textarea
-          value={data.house_rules || ""}
-          onChange={(e) => onUpdate({ house_rules: e.target.value })}
-          placeholder="Describe your house rules, smoking policy, pet policy, etc."
-        />
-      </div>
-    </div>
-  );
-};
+    );
+  };
 
 export default PropertyBasics;
