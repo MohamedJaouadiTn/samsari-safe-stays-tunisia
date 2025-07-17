@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -64,25 +65,29 @@ const MyProperties: React.FC = () => {
     const statsMap: Record<string, { views: number, bookings: number }> = {};
     
     try {
-      // Get booking counts
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('property_id, count(*)', { count: 'exact' })
-        .in('property_id', properties.map(p => p.id));
-
-      if (bookingsError) throw bookingsError;
-      
       // Initialize stats for all properties
       properties.forEach(property => {
         statsMap[property.id] = { views: 0, bookings: 0 };
       });
-      
-      // Add booking counts
-      bookingsData?.forEach(item => {
-        if (statsMap[item.property_id]) {
-          statsMap[item.property_id].bookings = Number(item.count) || 0;
+
+      if (properties.length > 0) {
+        // Get booking counts using count aggregation
+        const { data: bookingCounts, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('property_id')
+          .in('property_id', properties.map(p => p.id));
+
+        if (bookingsError) throw bookingsError;
+
+        // Count bookings per property
+        if (bookingCounts) {
+          bookingCounts.forEach(booking => {
+            if (statsMap[booking.property_id]) {
+              statsMap[booking.property_id].bookings++;
+            }
+          });
         }
-      });
+      }
       
       // For views, we could implement a view tracking system in the future
       // For now, we'll just use a random number for demonstration
