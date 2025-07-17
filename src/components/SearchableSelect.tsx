@@ -24,6 +24,7 @@ interface SearchableSelectProps {
   placeholder: string;
   searchPlaceholder: string;
   emptyMessage: string;
+  className?: string;
 }
 
 const SearchableSelect = ({
@@ -33,6 +34,7 @@ const SearchableSelect = ({
   placeholder,
   searchPlaceholder,
   emptyMessage,
+  className,
 }: SearchableSelectProps) => {
   const [open, setOpen] = useState(false);
 
@@ -43,7 +45,7 @@ const SearchableSelect = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className={cn("w-full justify-between", className)}
         >
           {value || placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
