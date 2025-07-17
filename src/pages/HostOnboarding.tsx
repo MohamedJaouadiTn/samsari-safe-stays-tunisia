@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -15,6 +14,7 @@ import PropertyDetails from "@/components/host/PropertyDetails";
 import PropertyPhotos from "@/components/host/PropertyPhotos";
 import PropertyPricing from "@/components/host/PropertyPricing";
 import PropertyReview from "@/components/host/PropertyReview";
+import SafetyFeaturesForm from "@/components/host/SafetyFeaturesForm";
 
 const HostOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -47,7 +47,14 @@ const HostOnboarding = () => {
     basePrice: "",
     currency: "TND",
     isPublic: true,
-    bookingEnabled: true
+    bookingEnabled: true,
+    safety_features: [],
+    sleeping_arrangements: [],
+    minimum_stay: 1,
+    house_rules: "",
+    check_in_time: "",
+    check_out_time: "",
+    cancellation_policy: "Moderate"
   });
 
   const totalSteps = 5;
@@ -58,7 +65,12 @@ const HostOnboarding = () => {
     { number: 2, title: "Property Details", component: PropertyDetails },
     { number: 3, title: "Photos", component: PropertyPhotos },
     { number: 4, title: "Pricing", component: PropertyPricing },
-    { number: 5, title: "Review", component: PropertyReview }
+    { number: 5, title: "Review", component: PropertyReview },
+    { 
+      number: 6, 
+      title: "Safety Features", 
+      component: SafetyFeaturesForm 
+    }
   ];
 
   const currentStepData = steps.find(step => step.number === currentStep);
@@ -186,7 +198,14 @@ const HostOnboarding = () => {
         price_per_night: parseFloat(formData.basePrice),
         is_public: formData.isPublic,
         booking_enabled: formData.bookingEnabled,
-        status: 'published'
+        status: 'published',
+        safety_features: formData.safety_features,
+        sleeping_arrangements: formData.sleeping_arrangements,
+        minimum_stay: formData.minimum_stay,
+        house_rules: formData.house_rules,
+        check_in_time: formData.check_in_time,
+        check_out_time: formData.check_out_time,
+        cancellation_policy: formData.cancellation_policy
       };
 
       const { data, error } = await supabase

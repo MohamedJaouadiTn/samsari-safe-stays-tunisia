@@ -183,6 +183,9 @@ export type Database = {
           bed_types: Json | null
           bedrooms: number
           booking_enabled: boolean | null
+          cancellation_policy: string | null
+          check_in_time: string | null
+          check_out_time: string | null
           city: string
           coordinates: Json | null
           created_at: string
@@ -191,12 +194,16 @@ export type Database = {
           google_maps_url: string | null
           governorate: string
           host_id: string
+          house_rules: string | null
           id: string
           is_public: boolean | null
           max_guests: number
+          minimum_stay: number | null
           photos: Json | null
           price_per_night: number
           property_type: string
+          safety_features: Json | null
+          sleeping_arrangements: Json | null
           status: string | null
           title: string
           updated_at: string
@@ -209,6 +216,9 @@ export type Database = {
           bed_types?: Json | null
           bedrooms?: number
           booking_enabled?: boolean | null
+          cancellation_policy?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
           city: string
           coordinates?: Json | null
           created_at?: string
@@ -217,12 +227,16 @@ export type Database = {
           google_maps_url?: string | null
           governorate: string
           host_id: string
+          house_rules?: string | null
           id?: string
           is_public?: boolean | null
           max_guests?: number
+          minimum_stay?: number | null
           photos?: Json | null
           price_per_night: number
           property_type: string
+          safety_features?: Json | null
+          sleeping_arrangements?: Json | null
           status?: string | null
           title: string
           updated_at?: string
@@ -235,6 +249,9 @@ export type Database = {
           bed_types?: Json | null
           bedrooms?: number
           booking_enabled?: boolean | null
+          cancellation_policy?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
           city?: string
           coordinates?: Json | null
           created_at?: string
@@ -243,12 +260,16 @@ export type Database = {
           google_maps_url?: string | null
           governorate?: string
           host_id?: string
+          house_rules?: string | null
           id?: string
           is_public?: boolean | null
           max_guests?: number
+          minimum_stay?: number | null
           photos?: Json | null
           price_per_night?: number
           property_type?: string
+          safety_features?: Json | null
+          sleeping_arrangements?: Json | null
           status?: string | null
           title?: string
           updated_at?: string
