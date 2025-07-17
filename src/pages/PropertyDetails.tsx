@@ -123,43 +123,46 @@ const PropertyDetails = () => {
     const shareTitle = `${property.title} - ${property.price_per_night} TND per night`;
     const shareText = `Check out this beautiful ${property.property_type} in ${property.city}, ${property.governorate}`;
     
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl
-        });
-        
-        toast({
-          title: "Shared successfully",
-          description: "Property shared with others"
-        });
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          // Only show error if not user cancellation
-          toast({
-            title: "Sharing failed",
-            description: "Could not share the property",
-            variant: "destructive"
+    try {
+      // First try copying to clipboard as a fallback
+      await navigator.clipboard.writeText(shareUrl);
+      
+      // Then try the Share API if available
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl
           });
+          
+          toast({
+            title: "Shared successfully",
+            description: "Property shared with others"
+          });
+        } catch (error) {
+          // If share API fails but we already copied to clipboard, show that message
+          if ((error as Error).name !== 'AbortError') {
+            toast({
+              title: "Link Copied",
+              description: "Property link copied to clipboard"
+            });
+          }
         }
-      }
-    } else {
-      // Fallback for browsers that don't support navigator.share
-      try {
-        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        // If Share API is not available, we already copied to clipboard
         toast({
           title: "Link Copied",
           description: "Property link copied to clipboard"
         });
-      } catch (error) {
-        toast({
-          title: "Copy Failed",
-          description: "Could not copy link to clipboard",
-          variant: "destructive"
-        });
       }
+    } catch (error) {
+      // If both methods fail
+      toast({
+        title: "Sharing failed",
+        description: "Could not share the property",
+        variant: "destructive"
+      });
     }
   };
 
