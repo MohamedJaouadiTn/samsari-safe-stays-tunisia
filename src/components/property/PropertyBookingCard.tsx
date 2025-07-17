@@ -20,12 +20,30 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
   const [isSaved, setIsSaved] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [totalPrice, setTotalPrice] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
+    checkAuthStatus();
     checkIfSaved();
   }, [property.id]);
+
+  useEffect(() => {
+    calculateTotalPrice();
+  }, [checkIn, checkOut]);
+
+  const checkAuthStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+    }
+  };
 
   const checkIfSaved = async () => {
     try {
@@ -41,12 +59,42 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
 
       setIsSaved(!!data);
     } catch (error) {
-      // Property not saved
+      // Property not saved or error
+      console.log("Property not saved or error checking saved status");
     }
   };
 
+  const calculateTotalPrice = () => {
+    if (!checkIn || !checkOut) {
+      setTotalPrice(0);
+      return;
+    }
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    
+    if (checkInDate >= checkOutDate) {
+      setTotalPrice(0);
+      return;
+    }
+
+    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+    const price = nights * Number(property.price_per_night);
+    setTotalPrice(price);
+  };
+
   const toggleSave = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save properties",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -90,6 +138,8 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
         description: "Failed to update saved status",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,7 +162,7 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
       return;
     }
 
-    setLoading(true);
+    setCheckingAvailability(true);
     try {
       const { data, error } = await supabase
         .from("bookings")
@@ -122,9 +172,10 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
 
       if (error) throw error;
 
-      const isAvailable = !data || data.length === 0;
+      const available = !data || data.length === 0;
+      setIsAvailable(available);
       
-      if (isAvailable) {
+      if (available) {
         toast({
           title: "Available!",
           description: "This property is available for your selected dates",
@@ -144,11 +195,20 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setCheckingAvailability(false);
     }
   };
 
   const createReservation = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to make a reservation",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!checkIn || !checkOut) {
       toast({
         title: "Missing Dates",
@@ -158,7 +218,46 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
       return;
     }
 
+    if (new Date(checkIn) >= new Date(checkOut)) {
+      toast({
+        title: "Invalid Dates",
+        description: "Check-out date must be after check-in date",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isAvailable === false) {
+      toast({
+        title: "Not Available",
+        description: "This property is not available for your selected dates",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check availability again before creating the reservation
+    setLoading(true);
     try {
+      // First, check if these dates are available
+      const { data: existingBookings, error: checkError } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("property_id", property.id)
+        .or(`and(check_in_date.lte.${checkOut},check_out_date.gte.${checkIn})`);
+
+      if (checkError) throw checkError;
+
+      if (existingBookings && existingBookings.length > 0) {
+        toast({
+          title: "Not Available",
+          description: "Sorry, this property is now booked for your selected dates",
+          variant: "destructive"
+        });
+        setIsAvailable(false);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -174,7 +273,7 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
       const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
       const totalPrice = nights * Number(property.price_per_night);
 
-      const { error } = await supabase
+      const { data: newBooking, error } = await supabase
         .from("bookings")
         .insert({
           property_id: property.id,
@@ -184,7 +283,8 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
           check_out_date: checkOut,
           total_price: totalPrice,
           status: 'pending'
-        });
+        })
+        .select();
 
       if (error) throw error;
 
@@ -196,6 +296,7 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
       setCheckIn("");
       setCheckOut("");
       setGuests(1);
+      setIsAvailable(null);
     } catch (error) {
       console.error("Error creating reservation:", error);
       toast({
@@ -203,6 +304,8 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
         description: "Failed to create reservation",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -252,27 +355,39 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
           />
         </div>
         
+        {totalPrice > 0 && (
+          <div className="py-2 border-t border-b">
+            <div className="flex justify-between items-center">
+              <span>Total</span>
+              <span className="font-semibold">{totalPrice} TND</span>
+            </div>
+          </div>
+        )}
+        
         <Button 
           onClick={checkAvailability}
           className="w-full"
-          disabled={!checkIn || !checkOut || loading}
+          disabled={!checkIn || !checkOut || checkingAvailability}
+          variant={isAvailable === false ? "destructive" : "default"}
         >
           <Calendar className="h-4 w-4 mr-2" />
-          {loading ? "Checking..." : "Check Availability"}
+          {checkingAvailability ? "Checking..." : "Check Availability"}
         </Button>
         
         <Button 
           onClick={createReservation}
           className="w-full"
-          disabled={!checkIn || !checkOut}
+          disabled={!checkIn || !checkOut || isAvailable === false || loading}
+          variant={isAvailable === true ? "default" : "outline"}
         >
-          Reserve Now
+          {loading ? "Processing..." : "Reserve Now"}
         </Button>
 
         <Button 
           variant="outline" 
           onClick={toggleSave}
           className="w-full"
+          disabled={loading}
         >
           <Heart className={`h-4 w-4 mr-2 ${isSaved ? 'fill-current' : ''}`} />
           {isSaved ? 'Saved' : 'Save Property'}
@@ -280,6 +395,9 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
         
         <div className="text-sm text-muted-foreground">
           <p>You won't be charged yet</p>
+          {!isAuthenticated && (
+            <p className="mt-2 text-amber-600">You need to be logged in to make a reservation</p>
+          )}
         </div>
       </CardContent>
     </Card>

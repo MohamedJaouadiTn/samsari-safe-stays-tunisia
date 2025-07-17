@@ -22,6 +22,7 @@ const PropertyDetails = () => {
   const { toast } = useToast();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
+  const [propertyStatus, setPropertyStatus] = useState<string>("Loading...");
 
   useEffect(() => {
     if (id) {
@@ -33,6 +34,7 @@ const PropertyDetails = () => {
   useEffect(() => {
     if (property) {
       updateSEOTags();
+      checkPropertyStatus();
     }
   }, [property]);
 
@@ -68,6 +70,46 @@ const PropertyDetails = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkPropertyStatus = async () => {
+    if (!property) return;
+    
+    try {
+      // Check for active or upcoming bookings
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("property_id", property.id)
+        .gte("check_out_date", new Date().toISOString().split('T')[0]);
+
+      if (error) {
+        console.error("Error checking bookings:", error);
+        setPropertyStatus("Available");
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setPropertyStatus("Available");
+        return;
+      }
+      
+      // Check if there's a current booking (check-in date <= today <= check-out date)
+      const today = new Date().toISOString().split('T')[0];
+      const currentBooking = data.find(booking => 
+        booking.check_in_date <= today && booking.check_out_date >= today
+      );
+      
+      if (currentBooking) {
+        setPropertyStatus("Occupied");
+        return;
+      }
+      
+      setPropertyStatus("Reserved");
+    } catch (error) {
+      console.error("Error checking property status:", error);
+      setPropertyStatus("Available");
     }
   };
 
@@ -170,6 +212,15 @@ const PropertyDetails = () => {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'available': return 'bg-green-100 text-green-800';
+      case 'reserved': return 'bg-yellow-100 text-yellow-800';
+      case 'occupied': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -223,6 +274,9 @@ const PropertyDetails = () => {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold">{property.title}</h1>
             <div className="flex items-center gap-2">
+              <Badge className={getStatusColor(propertyStatus)}>
+                {propertyStatus}
+              </Badge>
               <Button variant="outline" size="sm" onClick={shareProperty}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Share

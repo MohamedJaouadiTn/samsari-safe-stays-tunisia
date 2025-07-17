@@ -36,9 +36,12 @@ const SearchHero = () => {
   ];
 
   const handleSearch = () => {
-    // Build search params
+    // Build search params with consistent naming
     const params = new URLSearchParams();
     if (searchLocation.trim()) {
+      // Use city parameter name for consistency with search results page
+      params.set("city", searchLocation.trim());
+      // Also set location for backward compatibility
       params.set("location", searchLocation.trim());
     }
     if (checkIn) {

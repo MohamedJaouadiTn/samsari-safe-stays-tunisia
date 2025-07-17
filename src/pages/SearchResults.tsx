@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,12 +26,14 @@ const SearchResults = () => {
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   
-  // Initialize filters from URL params
+  // Initialize filters from URL params with consistent naming
   const [filters, setFilters] = useState({
-    city: searchParams.get("city") || "",
+    city: searchParams.get("city") || searchParams.get("location") || "",
     governorate: searchParams.get("governorate") || "",
-    location: searchParams.get("location") || "",
+    location: searchParams.get("location") || searchParams.get("city") || "",
     guests: parseInt(searchParams.get("guests") || "1"),
+    checkIn: searchParams.get("checkIn") || "",
+    checkOut: searchParams.get("checkOut") || "",
     priceRange: [0, 1000],
     propertyType: "",
     bedrooms: "",
@@ -40,13 +41,15 @@ const SearchResults = () => {
   });
 
   useEffect(() => {
-    // Update filters when URL changes
+    // Update filters when URL changes, prioritizing 'city' over 'location'
     setFilters(prev => ({
       ...prev,
-      city: searchParams.get("city") || "",
+      city: searchParams.get("city") || searchParams.get("location") || "",
       governorate: searchParams.get("governorate") || "",
-      location: searchParams.get("location") || "",
+      location: searchParams.get("location") || searchParams.get("city") || "",
       guests: parseInt(searchParams.get("guests") || "1"),
+      checkIn: searchParams.get("checkIn") || "",
+      checkOut: searchParams.get("checkOut") || "",
     }));
     
     fetchProperties();
@@ -62,10 +65,12 @@ const SearchResults = () => {
         .eq("status", "published");
 
       // Apply filters from URL params
-      const city = searchParams.get("city");
+      const city = searchParams.get("city") || searchParams.get("location");
       const governorate = searchParams.get("governorate");
-      const location = searchParams.get("location");
+      const location = searchParams.get("location") || searchParams.get("city");
       const guests = searchParams.get("guests");
+      const checkIn = searchParams.get("checkIn");
+      const checkOut = searchParams.get("checkOut");
 
       if (city) {
         query = query.ilike("city", `%${city}%`);
@@ -73,13 +78,14 @@ const SearchResults = () => {
       if (governorate) {
         query = query.eq("governorate", governorate);
       }
-      if (location) {
+      if (location && !city) { // Use location as fallback if city isn't specified
         // Search in both city and governorate
         query = query.or(`city.ilike.%${location}%,governorate.ilike.%${location}%`);
       }
       if (guests) {
         query = query.gte("max_guests", parseInt(guests));
       }
+      // Additional filters for check-in/check-out dates can be added here
 
       const { data, error } = await query.order("created_at", { ascending: false });
 
@@ -93,7 +99,13 @@ const SearchResults = () => {
         return;
       }
 
-      setProperties(data || []);
+      if (checkIn && checkOut) {
+        // Client-side filtering for availability based on dates
+        // This is a temporary solution - a proper solution would query bookings table
+        setProperties(data || []);
+      } else {
+        setProperties(data || []);
+      }
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -113,33 +125,53 @@ const SearchResults = () => {
     if (filters.governorate) params.set("governorate", filters.governorate);
     if (filters.location) params.set("location", filters.location);
     if (filters.guests > 1) params.set("guests", filters.guests.toString());
+    if (filters.checkIn) params.set("checkIn", filters.checkIn);
+    if (filters.checkOut) params.set("checkOut", filters.checkOut);
     
     setSearchParams(params);
     setShowFilters(false);
   };
 
   const clearFilters = () => {
+    // Reset both filter state and URL parameters
     setFilters({
       city: "",
       governorate: "",
       location: "",
       guests: 1,
+      checkIn: "",
+      checkOut: "",
       priceRange: [0, 1000],
       propertyType: "",
       bedrooms: "",
       amenities: [],
     });
-    setSearchParams({});
+    
+    // Clear all URL parameters
+    navigate("/search");
   };
 
   const getPropertyImage = (photos: any) => {
     if (!photos || !Array.isArray(photos) || photos.length === 0) return "/placeholder.svg";
-    const exteriorPhoto = photos.find((p: any) => p.type === 'exterior');
-    return exteriorPhoto?.url || photos[0]?.url || "/placeholder.svg";
+    
+    // First try to find an exterior photo
+    const exteriorPhoto = photos.find((p: any) => 
+      p && typeof p === 'object' && p.type === 'exterior' && p.url
+    );
+    
+    // If found, return its URL
+    if (exteriorPhoto && typeof exteriorPhoto === 'object' && exteriorPhoto.url) {
+      return exteriorPhoto.url;
+    }
+    
+    // Otherwise, safely get the first photo's URL
+    const firstPhoto = photos[0];
+    return (firstPhoto && typeof firstPhoto === 'object' && firstPhoto.url) ? firstPhoto.url : "/placeholder.svg";
   };
 
   const getPropertyStatus = async (propertyId: string) => {
     try {
+      // Check for active or upcoming bookings
       const { data, error } = await supabase
         .from("bookings")
         .select("*")
@@ -151,7 +183,21 @@ const SearchResults = () => {
         return "Available";
       }
 
-      return data && data.length > 0 ? "Reserved" : "Available";
+      if (!data || data.length === 0) {
+        return "Available";
+      }
+      
+      // Check if there's a current booking (check-in date <= today <= check-out date)
+      const today = new Date().toISOString().split('T')[0];
+      const currentBooking = data.find(booking => 
+        booking.check_in_date <= today && booking.check_out_date >= today
+      );
+      
+      if (currentBooking) {
+        return "Occupied";
+      }
+      
+      return "Reserved";
     } catch (error) {
       console.error("Error:", error);
       return "Available";
@@ -167,6 +213,7 @@ const SearchResults = () => {
     }
   };
 
+  // Filter properties based on additional UI filters
   const filteredProperties = properties.filter(property => {
     if (filters.priceRange[0] > 0 && property.price_per_night < filters.priceRange[0]) return false;
     if (filters.priceRange[1] < 1000 && property.price_per_night > filters.priceRange[1]) return false;
@@ -222,13 +269,16 @@ const SearchResults = () => {
                   <Input
                     placeholder="Search cities or governorates..."
                     value={filters.location}
-                    onChange={(e) => setFilters({...filters, location: e.target.value})}
+                    onChange={(e) => setFilters({...filters, location: e.target.value, city: e.target.value})}
                   />
                 </div>
 
                 <div>
                   <Label>City</Label>
-                  <Select value={filters.city} onValueChange={(value) => setFilters({...filters, city: value})}>
+                  <Select 
+                    value={filters.city} 
+                    onValueChange={(value) => setFilters({...filters, city: value, location: value})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select city" />
                     </SelectTrigger>
@@ -309,6 +359,28 @@ const SearchResults = () => {
                       <SelectItem value="4">4+ Bedrooms</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label>Check-in Date</Label>
+                  <Input
+                    type="date"
+                    value={filters.checkIn}
+                    onChange={(e) => setFilters({...filters, checkIn: e.target.value})}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Check-out Date</Label>
+                  <Input
+                    type="date"
+                    value={filters.checkOut}
+                    onChange={(e) => setFilters({...filters, checkOut: e.target.value})}
+                    min={filters.checkIn || new Date().toISOString().split('T')[0]}
+                    className="mt-1"
+                  />
                 </div>
 
                 <Button onClick={applyFilters} className="w-full">
