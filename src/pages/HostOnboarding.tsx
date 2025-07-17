@@ -1,14 +1,15 @@
-import { useState } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import PropertyBasics from "@/components/host/PropertyBasics";
 import PropertyDetails from "@/components/host/PropertyDetails";
 import PropertyPhotos from "@/components/host/PropertyPhotos";
@@ -17,222 +18,165 @@ import PropertyReview from "@/components/host/PropertyReview";
 import SafetyFeaturesForm from "@/components/host/SafetyFeaturesForm";
 
 const HostOnboarding = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  
-  const [formData, setFormData] = useState({
-    propertyType: "",
+
+  // Initial property data with defaults
+  const [propertyData, setPropertyData] = useState({
     title: "",
     description: "",
+    property_type: "",
     governorate: "",
     city: "",
     address: "",
-    latitude: null,
-    longitude: null,
-    google_maps_url: "",
     bedrooms: 1,
     bathrooms: 1,
-    maxGuests: 4,
-    extraBeds: 0,
-    bedroomDetails: [],
-    visitorsAllowed: false,
-    overnightVisitors: false,
-    daytimeVisitors: true,
+    max_guests: 4,
+    price_per_night: 0,
     amenities: [],
     photos: [],
-    price_per_night: 0,
-    currency: "TND",
-    isPublic: true,
-    bookingEnabled: true,
     safety_features: [],
     sleeping_arrangements: [],
+    bed_types: [],
+    extra_beds: 0,
     minimum_stay: 1,
+    cancellation_policy: "Moderate",
+    check_in_time: "10:00",
+    check_out_time: "12:00",
     house_rules: "",
-    check_in_time: "",
-    check_out_time: "",
-    cancellation_policy: "Moderate"
+    coordinates: null,
+    google_maps_url: ""
   });
 
-  const totalSteps = 5;
-  const progress = (currentStep / totalSteps) * 100;
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+  }, [user, navigate]);
 
   const steps = [
     { number: 1, title: "Property Basics", component: PropertyBasics },
     { number: 2, title: "Property Details", component: PropertyDetails },
     { number: 3, title: "Photos", component: PropertyPhotos },
-    { number: 4, title: "Pricing", component: PropertyPricing },
-    { number: 5, title: "Review", component: PropertyReview },
-    { 
-      number: 6, 
-      title: "Safety Features", 
-      component: SafetyFeaturesForm 
-    }
+    { number: 4, title: "Safety Features", component: SafetyFeaturesForm },
+    { number: 5, title: "Pricing", component: PropertyPricing },
+    { number: 6, title: "Review & Publish", component: PropertyReview }
   ];
 
-  const currentStepData = steps.find(step => step.number === currentStep);
-  const CurrentStepComponent = currentStepData?.component;
+  const updatePropertyData = (updates: any) => {
+    setPropertyData(prev => ({ ...prev, ...updates }));
+    // Clear any existing errors for updated fields
+    const updatedFields = Object.keys(updates);
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      updatedFields.forEach(field => {
+        delete newErrors[field];
+      });
+      return newErrors;
+    });
+  };
 
-  const validateCurrentStep = () => {
+  const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};
-    
-    switch (currentStep) {
+
+    switch (step) {
       case 1: // Property Basics
-        if (!formData.propertyType) {
-          newErrors.propertyType = "Please select a property type";
+        if (!propertyData.title?.trim()) {
+          newErrors.title = "Property title is required";
         }
-        if (!formData.title?.trim()) {
-          newErrors.title = "Please enter a property title";
+        if (!propertyData.property_type) {
+          newErrors.propertyType = "Property type is required";
         }
-        if (!formData.governorate) {
-          newErrors.governorate = "Please select a governorate";
+        if (!propertyData.governorate) {
+          newErrors.governorate = "Governorate is required";
         }
-        if (!formData.city) {
-          newErrors.city = "Please select a city";
+        if (!propertyData.city) {
+          newErrors.city = "City is required";
         }
         break;
-        
+
       case 2: // Property Details
-        if (!formData.maxGuests || formData.maxGuests < 1) {
+        if (!propertyData.bedrooms || propertyData.bedrooms < 1) {
+          newErrors.bedrooms = "At least 1 bedroom is required";
+        }
+        if (!propertyData.bathrooms || propertyData.bathrooms < 1) {
+          newErrors.bathrooms = "At least 1 bathroom is required";
+        }
+        if (!propertyData.max_guests || propertyData.max_guests < 1) {
           newErrors.maxGuests = "Maximum guests must be at least 1";
         }
         break;
-        
+
       case 3: // Photos
-        const requiredPhotoTypes = ['exterior', 'kitchen', 'bathroom', 'living_room'];
-        const hasAllRequired = requiredPhotoTypes.every(type => 
-          formData.photos.some((photo: any) => photo.type === type)
-        );
-        
-        const uniqueBedroomTypes = new Set(
-          formData.photos.filter((photo: any) => photo.type?.startsWith('bedroom_')).map((p: any) => p.type)
-        );
-        const hasBedroomPhotos = formData.bedrooms <= uniqueBedroomTypes.size;
-        
-        if (!hasAllRequired) {
-          newErrors.photos = "Please upload photos for exterior, kitchen, bathroom, and living room";
-        }
-        if (!hasBedroomPhotos) {
-          newErrors.photos = (newErrors.photos || "") + " Please upload photos for all bedrooms";
+        if (!propertyData.photos || propertyData.photos.length === 0) {
+          newErrors.photos = "At least one photo is required";
         }
         break;
-        
-      case 4: // Pricing
-        if (!formData.price_per_night || formData.price_per_night <= 0) {
-          newErrors.price_per_night = "Please enter a valid price per night";
+
+      case 4: // Safety Features
+        // Safety features are optional, no validation needed
+        break;
+
+      case 5: // Pricing
+        if (!propertyData.price_per_night || propertyData.price_per_night <= 0) {
+          newErrors.price_per_night = "Price per night is required and must be greater than 0";
         }
         break;
     }
-    
+
     setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length > 0) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields highlighted in red",
-        variant: "destructive"
-      });
-      return false;
-    }
-    
-    return true;
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (!validateCurrentStep()) return;
-    
-    setErrors({});
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, steps.length));
     }
   };
 
-  const handlePrevious = () => {
-    setErrors({});
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const publishProperty = async () => {
+    if (!validateStep(currentStep)) {
+      return;
     }
-  };
 
-  const handleDataUpdate = (newData: any) => {
-    setFormData({ ...formData, ...newData });
-    // Clear related errors when user updates data
-    const updatedErrors = { ...errors };
-    Object.keys(newData).forEach(key => {
-      if (updatedErrors[key]) {
-        delete updatedErrors[key];
-      }
-    });
-    setErrors(updatedErrors);
-  };
-
-  const publishListing = async () => {
-    if (!validateCurrentStep() || !user) return;
-    
     setLoading(true);
-    
     try {
-      const propertyData = {
-        host_id: user.id,
-        title: formData.title,
-        description: formData.description,
-        property_type: formData.propertyType,
-        governorate: formData.governorate,
-        city: formData.city,
-        address: formData.address,
-        coordinates: formData.latitude && formData.longitude ? 
-          { lat: formData.latitude, lng: formData.longitude } : null,
-        google_maps_url: formData.google_maps_url || null,
-        bedrooms: formData.bedrooms,
-        bathrooms: formData.bathrooms,
-        max_guests: formData.maxGuests,
-        extra_beds: formData.extraBeds,
-        bed_types: formData.bedroomDetails || [],
-        visitor_policy: formData.visitorsAllowed ? 
-          (formData.overnightVisitors ? 'overnight_allowed' : 'morning_only') : 'no_visitors',
-        amenities: formData.amenities,
-        photos: formData.photos,
-        price_per_night: formData.price_per_night,
-        is_public: formData.isPublic,
-        booking_enabled: formData.bookingEnabled,
+      const propertyPayload = {
+        ...propertyData,
+        host_id: user!.id,
+        is_public: true,
         status: 'published',
-        safety_features: formData.safety_features,
-        sleeping_arrangements: formData.sleeping_arrangements,
-        minimum_stay: formData.minimum_stay,
-        house_rules: formData.house_rules,
-        check_in_time: formData.check_in_time,
-        check_out_time: formData.check_out_time,
-        cancellation_policy: formData.cancellation_policy
+        booking_enabled: true
       };
 
       const { data, error } = await supabase
-        .from('properties')
-        .insert(propertyData)
+        .from("properties")
+        .insert([propertyPayload])
         .select()
         .single();
 
       if (error) throw error;
 
-      const shareUrl = `${window.location.origin}/property/${data.id}`;
-      
       toast({
-        title: "Listing Published!",
-        description: `Your property is now live and searchable. Share URL: ${shareUrl}`,
+        title: "Success!",
+        description: "Your property has been published successfully"
       });
-      
-      // Navigate to profile after success
-      setTimeout(() => {
-        navigate("/profile");
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Publishing error:', error);
+
+      navigate("/profile?tab=properties");
+    } catch (error: any) {
+      console.error("Error publishing property:", error);
       toast({
         title: "Error",
-        description: "Failed to publish listing. Please try again.",
+        description: error.message || "Failed to publish property",
         variant: "destructive"
       });
     } finally {
@@ -240,57 +184,73 @@ const HostOnboarding = () => {
     }
   };
 
+  const CurrentStepComponent = steps[currentStep - 1].component;
+
   return (
     <div className="min-h-screen">
       <Header />
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Progress Header */}
           <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-2xl font-bold">Create Your Listing</h1>
-              <span className="text-sm text-muted-foreground">
-                Step {currentStep} of {totalSteps}
-              </span>
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/profile")}
+              className="mb-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Profile
+            </Button>
+            
+            <h1 className="text-3xl font-bold mb-4">List Your Property</h1>
+            <Progress value={(currentStep / steps.length) * 100} className="mb-6" />
+            
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Step {currentStep} of {steps.length}</span>
+              <span>{steps[currentStep - 1].title}</span>
             </div>
-            <Progress value={progress} className="w-full" />
           </div>
 
-          {/* Step Content */}
           <Card>
             <CardHeader>
-              <CardTitle>{currentStepData?.title}</CardTitle>
+              <CardTitle>{steps[currentStep - 1].title}</CardTitle>
             </CardHeader>
             <CardContent>
-              {CurrentStepComponent && (
-                <CurrentStepComponent 
-                  data={formData} 
-                  onUpdate={handleDataUpdate}
-                  errors={errors}
-                />
-              )}
+              <CurrentStepComponent
+                data={propertyData}
+                onUpdate={updatePropertyData}
+                errors={errors}
+              />
             </CardContent>
           </Card>
 
-          {/* Navigation */}
           <div className="flex justify-between mt-8">
-            <Button 
-              variant="outline" 
-              onClick={handlePrevious}
+            <Button
+              variant="outline"
+              onClick={prevStep}
               disabled={currentStep === 1}
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
-            
-            <Button 
-              onClick={currentStep === totalSteps ? publishListing : handleNext}
-              disabled={loading}
-            >
-              {loading ? "Publishing..." : currentStep === totalSteps ? "Publish Listing" : "Next"}
-              {currentStep !== totalSteps && <ArrowRight className="w-4 h-4 ml-2" />}
-            </Button>
+
+            {currentStep === steps.length ? (
+              <Button onClick={publishProperty} disabled={loading}>
+                {loading ? (
+                  "Publishing..."
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Publish Property
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button onClick={nextStep}>
+                Next
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            )}
           </div>
         </div>
       </main>

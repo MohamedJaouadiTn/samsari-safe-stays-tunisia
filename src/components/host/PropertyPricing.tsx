@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,13 @@ interface PropertyPricingProps {
 
 const PropertyPricing = ({ data, onUpdate, errors }: PropertyPricingProps) => {
   const [basePrice, setBasePrice] = useState(data.price_per_night || 0);
+
+  // Sync with data when it changes
+  useEffect(() => {
+    if (data.price_per_night !== basePrice) {
+      setBasePrice(data.price_per_night || 0);
+    }
+  }, [data.price_per_night]);
 
   const handlePriceChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
@@ -43,14 +50,14 @@ const PropertyPricing = ({ data, onUpdate, errors }: PropertyPricingProps) => {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <div>
-              <Label htmlFor="base_price">Base Price per Night</Label>
+              <Label htmlFor="base_price">Base Price per Night *</Label>
               <div className="relative mt-2">
                 <Input
                   id="base_price"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={basePrice}
+                  value={basePrice || ""}
                   onChange={(e) => handlePriceChange(e.target.value)}
                   placeholder="Enter price"
                   className={`pr-12 ${errors?.price_per_night ? 'border-red-500' : ''}`}

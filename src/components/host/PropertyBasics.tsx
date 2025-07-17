@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -120,6 +121,16 @@ const propertyTypes = [
     const getSelectClassName = (fieldName: string) => {
       return errors[fieldName] ? "border-red-500" : "";
     };
+
+    // Set default times when component mounts if not already set
+    React.useEffect(() => {
+      if (!data.check_in_time && !data.check_out_time) {
+        onUpdate({ 
+          check_in_time: "10:00",
+          check_out_time: "12:00"
+        });
+      }
+    }, []);
 
     return (
       <div className="space-y-6">
@@ -251,14 +262,14 @@ const propertyTypes = [
           <div>
             <Label>Check-in Time</Label>
             <TimePicker 
-              value={data.check_in_time}
+              value={data.check_in_time || "10:00"}
               onValueChange={(time) => onUpdate({ check_in_time: time })}
             />
           </div>
           <div>
             <Label>Check-out Time</Label>
             <TimePicker 
-              value={data.check_out_time}
+              value={data.check_out_time || "12:00"}
               onValueChange={(time) => onUpdate({ check_out_time: time })}
             />
           </div>

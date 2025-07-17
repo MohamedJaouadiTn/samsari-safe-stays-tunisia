@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Settings, Camera, Home, LogOut, Shield, Mail, Package, MessageSquare } from "lucide-react";
+import { User, Settings, Camera, Home, LogOut, Shield, Mail, Package, MessageSquare, Heart, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import IdVerification from "@/components/IdVerification";
@@ -17,7 +17,6 @@ import ChangePassword from "@/components/ChangePassword";
 import MyProperties from "@/components/host/MyProperties";
 import Inbox from "@/components/messaging/Inbox";
 import ProfilePictureUpload from "@/components/ProfilePictureUpload";
-import { Calendar } from "lucide-react";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -25,6 +24,7 @@ const Profile = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [savedProperties, setSavedProperties] = useState([]);
   const [profile, setProfile] = useState({
     full_name: "",
     phone: "",
@@ -41,6 +41,7 @@ const Profile = () => {
       return;
     }
     fetchProfile();
+    fetchSavedProperties();
   }, [user, navigate]);
 
   const fetchProfile = async () => {
@@ -56,6 +57,60 @@ const Profile = () => {
       console.log("Profile fetch error:", error);
     } else if (data) {
       setProfile(data);
+    }
+  };
+
+  const fetchSavedProperties = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("saved_properties")
+        .select(`
+          id,
+          property_id,
+          properties (
+            id,
+            title,
+            city,
+            governorate,
+            price_per_night,
+            photos,
+            property_type,
+            bedrooms,
+            bathrooms
+          )
+        `)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setSavedProperties(data || []);
+    } catch (error) {
+      console.error("Error fetching saved properties:", error);
+    }
+  };
+
+  const removeSavedProperty = async (savedPropertyId: string) => {
+    try {
+      const { error } = await supabase
+        .from("saved_properties")
+        .delete()
+        .eq("id", savedPropertyId);
+
+      if (error) throw error;
+
+      setSavedProperties(prev => prev.filter(item => item.id !== savedPropertyId));
+      toast({
+        title: "Removed from saved",
+        description: "Property removed from your saved list"
+      });
+    } catch (error) {
+      console.error("Error removing saved property:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove property from saved list",
+        variant: "destructive"
+      });
     }
   };
 
@@ -141,11 +196,12 @@ const Profile = () => {
           </div>
 
           <Tabs defaultValue={defaultTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
               <TabsTrigger value="hosting">Hosting</TabsTrigger>
               <TabsTrigger value="properties">My Properties</TabsTrigger>
+              <TabsTrigger value="saved">Saved</TabsTrigger>
               <TabsTrigger value="inbox">Inbox</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -267,6 +323,76 @@ const Profile = () => {
                       <Button onClick={becomeHost} disabled={loading}>
                         {loading ? "Processing..." : "Become a Host"}
                       </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="saved">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Heart className="h-5 w-5" />
+                    <span>Saved Properties</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {savedProperties.length === 0 ? (
+                    <div className="text-center py-6">
+                      <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground mb-4">
+                        You haven't saved any properties yet.
+                      </p>
+                      <Button onClick={() => navigate("/search")}>
+                        Browse Properties
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {savedProperties.map((item: any) => (
+                        <div key={item.id} className="flex items-center space-x-4 p-4 border rounded-lg">
+                          <div className="relative h-20 w-20 bg-muted rounded overflow-hidden">
+                            {item.properties.photos && Array.isArray(item.properties.photos) && item.properties.photos.length > 0 ? (
+                              <img 
+                                src={(item.properties.photos[0] as any)?.url || "/placeholder.svg"} 
+                                alt={item.properties.title}
+                                className="object-cover w-full h-full"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
+                                No photo
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium">{item.properties.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {item.properties.city}, {item.properties.governorate}
+                            </p>
+                            <p className="text-sm">
+                              {item.properties.property_type} • {item.properties.bedrooms} bed • {item.properties.bathrooms} bath
+                            </p>
+                            <p className="font-medium">{item.properties.price_per_night} TND/night</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/property/${item.properties.id}`)}
+                            >
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeSavedProperty(item.id)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </CardContent>

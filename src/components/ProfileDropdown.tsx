@@ -104,7 +104,7 @@ const ProfileDropdown = ({ profile, userEmail }: ProfileDropdownProps) => {
 
       const avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
 
-      // Update profile
+      // Update profile in profiles table (not auth.users)
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: avatarUrl })
