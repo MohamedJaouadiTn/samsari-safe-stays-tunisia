@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { 
   MapPin, Users, Bed, Bath, ArrowLeft, Share2, 
   CheckCircle, Wifi, Car, Coffee, Tv, AirVent, Waves, Shield,
-  AlarmSmoke, FireExtinguisher, FirstAid
+  AlarmSmoke, FireExtinguisher, Heart
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -191,7 +190,7 @@ const PropertyDetails = () => {
     switch (feature) {
       case 'smoke_detector': return <AlarmSmoke className="h-4 w-4" />;
       case 'carbon_monoxide_detector': return <AlarmSmoke className="h-4 w-4" />;
-      case 'first_aid_kit': return <FirstAid className="h-4 w-4" />;
+      case 'first_aid_kit': return <Heart className="h-4 w-4" />;
       case 'fire_extinguisher': return <FireExtinguisher className="h-4 w-4" />;
       default: return <Shield className="h-4 w-4" />;
     }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -68,9 +67,8 @@ const MyProperties: React.FC = () => {
       // Get booking counts
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
-        .select('property_id, count')
-        .in('property_id', properties.map(p => p.id))
-        .group('property_id');
+        .select('property_id, count(*)', { count: 'exact' })
+        .in('property_id', properties.map(p => p.id));
 
       if (bookingsError) throw bookingsError;
       
