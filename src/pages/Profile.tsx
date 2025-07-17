@@ -8,13 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Settings, Home, Calendar, Shield, Mail } from "lucide-react";
+import { User, Home, Calendar, Shield, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import ProfilePictureUpload from "@/components/ProfilePictureUpload";
 import IdVerification from "@/components/IdVerification";
+import ChangePassword from "@/components/ChangePassword";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -111,10 +110,6 @@ const Profile = () => {
     setLoading(false);
   };
 
-  const handleAvatarUpdate = (newUrl: string) => {
-    setProfile({ ...profile, avatar_url: newUrl });
-  };
-
   const handleVerificationSubmitted = () => {
     setProfile({ ...profile, verification_status: 'pending' });
   };
@@ -151,13 +146,6 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <ProfilePictureUpload
-                    currentAvatarUrl={profile.avatar_url}
-                    userInitial={profile.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
-                    userId={user.id}
-                    onAvatarUpdate={handleAvatarUpdate}
-                  />
-
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="full_name">Full Name</Label>
@@ -239,35 +227,36 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="settings">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Settings className="h-5 w-5" />
-                    <span>Account Settings</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded">
-                    <div>
-                      <h4 className="font-medium">Account created</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </p>
+              <div className="space-y-6">
+                <ChangePassword />
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Account Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded">
+                      <div>
+                        <h4 className="font-medium">Account created</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 border rounded">
-                    <div>
-                      <h4 className="font-medium">Email verified</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {user.email_confirmed_at ? "Yes" : "Pending verification"}
-                      </p>
+                    
+                    <div className="flex items-center justify-between p-4 border rounded">
+                      <div>
+                        <h4 className="font-medium">Email verified</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {user.email_confirmed_at ? "Yes" : "Pending verification"}
+                        </p>
+                      </div>
+                      <Mail className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

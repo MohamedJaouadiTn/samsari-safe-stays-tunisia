@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 import SearchableSelect from "./SearchableSelect";
 
 const SearchHero = () => {
@@ -11,6 +12,7 @@ const SearchHero = () => {
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
+  const navigate = useNavigate();
 
   const tunisianLocations = [
     // Governorates
@@ -34,20 +36,23 @@ const SearchHero = () => {
   ];
 
   const handleSearch = () => {
-    if (!searchLocation.trim()) {
-      alert("Please select a location to search");
-      return;
+    // Build search params
+    const params = new URLSearchParams();
+    if (searchLocation.trim()) {
+      params.set("location", searchLocation.trim());
+    }
+    if (checkIn) {
+      params.set("checkIn", checkIn);
+    }
+    if (checkOut) {
+      params.set("checkOut", checkOut);
+    }
+    if (guests) {
+      params.set("guests", guests.toString());
     }
 
-    console.log("Searching for:", {
-      location: searchLocation,
-      checkIn,
-      checkOut,
-      guests
-    });
-
-    // For now, just show an alert - in a real app, this would navigate to search results
-    alert(`Searching for properties in ${searchLocation} for ${guests} guests`);
+    // Navigate to search results page
+    navigate(`/search?${params.toString()}`);
   };
 
   return (

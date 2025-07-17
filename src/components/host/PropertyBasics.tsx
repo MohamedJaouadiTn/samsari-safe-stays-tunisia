@@ -1,4 +1,3 @@
-
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -145,10 +144,13 @@ const PropertyBasics = ({ data, onUpdate, errors = {} }: PropertyBasicsProps) =>
           id="description"
           value={data.description}
           onChange={(e) => onUpdate({ description: e.target.value })}
-          placeholder="Describe your property..."
+          placeholder="e.g., Spacious 3rd floor apartment with stunning beach view, close to restaurants and shops. Perfect for families or couples..."
           rows={4}
           className={getInputClassName('description')}
         />
+        <p className="text-xs text-muted-foreground mt-1">
+          Tip: Describe the atmosphere and location features. Don't mention number of bedrooms - you'll add those in the next step.
+        </p>
         {errors.description && (
           <p className="text-red-500 text-sm mt-1">{errors.description}</p>
         )}

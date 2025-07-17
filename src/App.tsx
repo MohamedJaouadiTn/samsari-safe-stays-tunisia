@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import BecomeHost from "./pages/BecomeHost";
 import HostOnboarding from "./pages/HostOnboarding";
+import SearchResults from "./pages/SearchResults";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -38,8 +39,8 @@ const App = () => (
               <Route path="/help" element={<Help />} />
               <Route path="/become-host" element={<BecomeHost />} />
               <Route path="/host/onboarding" element={<HostOnboarding />} />
+              <Route path="/search" element={<SearchResults />} />
               <Route path="/admin" element={<Admin />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

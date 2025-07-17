@@ -1,14 +1,38 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, User, Menu, X } from "lucide-react";
+import { Shield, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import LanguageSelector from "./LanguageSelector";
+import ProfileDropdown from "./ProfileDropdown";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [profile, setProfile] = useState({ full_name: "", avatar_url: "" });
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name, avatar_url")
+      .eq("id", user.id)
+      .single();
+
+    if (data) {
+      setProfile(data);
+    }
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -44,14 +68,7 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-4">
             <LanguageSelector />
             {user ? (
-              <Button 
-                variant="outline" 
-                onClick={() => navigate("/profile")}
-                className="flex items-center space-x-2"
-              >
-                <User className="h-4 w-4" />
-                <span>Profile</span>
-              </Button>
+              <ProfileDropdown profile={profile} userEmail={user.email || ""} />
             ) : (
               <Button onClick={() => navigate("/auth")}>
                 Sign In
@@ -104,17 +121,7 @@ const Header = () => {
               <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
                 <LanguageSelector />
                 {user ? (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      navigate("/profile");
-                      setIsMenuOpen(false);
-                    }}
-                    className="flex items-center space-x-2"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>Profile</span>
-                  </Button>
+                  <ProfileDropdown profile={profile} userEmail={user.email || ""} />
                 ) : (
                   <Button 
                     onClick={() => {
