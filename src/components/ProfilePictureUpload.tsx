@@ -22,11 +22,41 @@ const ProfilePictureUpload = ({
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
 
+  const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions
+        const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }
+        }, 'image/jpeg', quality);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const uploadAvatar = async (file: File) => {
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please select an image smaller than 2MB",
+        description: "Please select an image smaller than 5MB",
         variant: "destructive"
       });
       return;
@@ -34,22 +64,28 @@ const ProfilePictureUpload = ({
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Compress the image
+      const compressedFile = await compressImage(file, 800, 0.7);
+      
+      const fileExt = 'jpg'; // Always use jpg after compression
       const fileName = `${userId}/avatar.${fileExt}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, compressedFile, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Get public URL
       const { data } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      const avatarUrl = data.publicUrl;
+      const avatarUrl = `${data.publicUrl}?t=${Date.now()}`; // Add timestamp to prevent caching
 
       // Update profile
       const { error: updateError } = await supabase
@@ -57,18 +93,21 @@ const ProfilePictureUpload = ({
         .update({ avatar_url: avatarUrl })
         .eq('id', userId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
 
       onAvatarUpdate(avatarUrl);
       toast({
         title: "Success",
         description: "Profile picture updated successfully"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Avatar upload error:', error);
       toast({
         title: "Error",
-        description: "Failed to upload profile picture",
+        description: error.message || "Failed to upload profile picture",
         variant: "destructive"
       });
     } finally {
@@ -79,6 +118,16 @@ const ProfilePictureUpload = ({
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       uploadAvatar(file);
     }
   };
@@ -121,6 +170,10 @@ const ProfilePictureUpload = ({
       </div>
       <p className="text-sm text-gray-600 text-center">
         Click the camera icon to upload a profile picture
+        <br />
+        <span className="text-xs text-muted-foreground">
+          Image will be compressed automatically for optimal quality
+        </span>
       </p>
     </div>
   );

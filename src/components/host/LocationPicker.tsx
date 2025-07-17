@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Info, Smartphone, Monitor } from "lucide-react";
+import { MapPin, Info, Smartphone, Monitor, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   HoverCard,
@@ -27,7 +27,10 @@ const LocationPicker = ({ data, onUpdate }: LocationPickerProps) => {
     if (data.latitude && data.longitude) {
       setCoordinates({ lat: data.latitude, lng: data.longitude });
     }
-  }, [data.latitude, data.longitude]);
+    if (data.google_maps_url) {
+      setMapUrl(data.google_maps_url);
+    }
+  }, [data.latitude, data.longitude, data.google_maps_url]);
 
   const handleGetCurrentLocation = () => {
     if ("geolocation" in navigator) {
@@ -137,7 +140,7 @@ const LocationPicker = ({ data, onUpdate }: LocationPickerProps) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="latitude">Latitude</Label>
+            <Label htmlFor="latitude">Latitude (E) - East/West position</Label>
             <Input
               id="latitude"
               type="number"
@@ -148,7 +151,7 @@ const LocationPicker = ({ data, onUpdate }: LocationPickerProps) => {
             />
           </div>
           <div>
-            <Label htmlFor="longitude">Longitude</Label>
+            <Label htmlFor="longitude">Longitude (N) - North/South position</Label>
             <Input
               id="longitude"
               type="number"
@@ -240,7 +243,14 @@ const LocationPicker = ({ data, onUpdate }: LocationPickerProps) => {
               </Alert>
             )}
             
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => window.open('https://maps.google.com', '_blank')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Google Maps
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowInstructions(false)}
