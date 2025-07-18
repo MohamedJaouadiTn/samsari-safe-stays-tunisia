@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,11 +19,13 @@ import SafetyFeaturesForm from "@/components/host/SafetyFeaturesForm";
 
 const HostOnboarding = () => {
   const navigate = useNavigate();
+  const { propertyId } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
 
   // Initial property data with defaults
   const [propertyData, setPropertyData] = useState({
@@ -57,7 +59,67 @@ const HostOnboarding = () => {
       navigate("/auth");
       return;
     }
-  }, [user, navigate]);
+
+    // If propertyId exists, we're editing an existing property
+    if (propertyId) {
+      setIsEditing(true);
+      fetchPropertyData();
+    }
+  }, [user, navigate, propertyId]);
+
+  const fetchPropertyData = async () => {
+    if (!propertyId) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("id", propertyId)
+        .eq("host_id", user!.id)
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setPropertyData({
+          title: data.title || "",
+          description: data.description || "",
+          property_type: data.property_type || "",
+          governorate: data.governorate || "",
+          city: data.city || "",
+          address: data.address || "",
+          bedrooms: data.bedrooms || 1,
+          bathrooms: data.bathrooms || 1,
+          max_guests: data.max_guests || 4,
+          price_per_night: data.price_per_night || 0,
+          amenities: data.amenities || [],
+          photos: data.photos || [],
+          safety_features: data.safety_features || [],
+          sleeping_arrangements: data.sleeping_arrangements || [],
+          bed_types: data.bed_types || [],
+          extra_beds: data.extra_beds || 0,
+          minimum_stay: data.minimum_stay || 1,
+          cancellation_policy: data.cancellation_policy || "Moderate",
+          check_in_time: data.check_in_time || "10:00",
+          check_out_time: data.check_out_time || "12:00",
+          house_rules: data.house_rules || "",
+          coordinates: data.coordinates || null,
+          google_maps_url: data.google_maps_url || ""
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching property:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load property data",
+        variant: "destructive"
+      });
+      navigate("/profile?tab=properties");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const steps = [
     { number: 1, title: "Property Basics", component: PropertyBasics },
@@ -143,7 +205,7 @@ const HostOnboarding = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const publishProperty = async () => {
+  const saveProperty = async () => {
     if (!validateStep(currentStep)) {
       return;
     }
@@ -158,25 +220,42 @@ const HostOnboarding = () => {
         booking_enabled: true
       };
 
-      const { data, error } = await supabase
-        .from("properties")
-        .insert([propertyPayload])
-        .select()
-        .single();
+      if (isEditing && propertyId) {
+        // Update existing property
+        const { error } = await supabase
+          .from("properties")
+          .update(propertyPayload)
+          .eq("id", propertyId)
+          .eq("host_id", user!.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success!",
-        description: "Your property has been published successfully"
-      });
+        toast({
+          title: "Success!",
+          description: "Your property has been updated successfully"
+        });
+      } else {
+        // Create new property
+        const { data, error } = await supabase
+          .from("properties")
+          .insert([propertyPayload])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "Success!",
+          description: "Your property has been published successfully"
+        });
+      }
 
       navigate("/profile?tab=properties");
     } catch (error: any) {
-      console.error("Error publishing property:", error);
+      console.error("Error saving property:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to publish property",
+        description: error.message || "Failed to save property",
         variant: "destructive"
       });
     } finally {
@@ -185,6 +264,20 @@ const HostOnboarding = () => {
   };
 
   const CurrentStepComponent = steps[currentStep - 1].component;
+
+  if (loading && isEditing) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center">Loading property data...</div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -195,14 +288,16 @@ const HostOnboarding = () => {
           <div className="mb-8">
             <Button
               variant="ghost"
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/profile?tab=properties")}
               className="mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Profile
+              Back to Properties
             </Button>
             
-            <h1 className="text-3xl font-bold mb-4">List Your Property</h1>
+            <h1 className="text-3xl font-bold mb-4">
+              {isEditing ? "Edit Your Property" : "List Your Property"}
+            </h1>
             <Progress value={(currentStep / steps.length) * 100} className="mb-6" />
             
             <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -235,13 +330,13 @@ const HostOnboarding = () => {
             </Button>
 
             {currentStep === steps.length ? (
-              <Button onClick={publishProperty} disabled={loading}>
+              <Button onClick={saveProperty} disabled={loading}>
                 {loading ? (
-                  "Publishing..."
+                  isEditing ? "Updating..." : "Publishing..."
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-2" />
-                    Publish Property
+                    {isEditing ? "Update Property" : "Publish Property"}
                   </>
                 )}
               </Button>

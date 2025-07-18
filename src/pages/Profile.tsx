@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -187,10 +188,9 @@ const Profile = () => {
           </div>
 
           <Tabs defaultValue={defaultTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
-              <TabsTrigger value="hosting">Hosting</TabsTrigger>
               <TabsTrigger value="properties">Properties</TabsTrigger>
               <TabsTrigger value="saved">Saved</TabsTrigger>
               <TabsTrigger value="inbox">Inbox</TabsTrigger>
@@ -255,65 +255,67 @@ const Profile = () => {
               />
             </TabsContent>
 
-            <TabsContent value="hosting">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Home className="h-5 w-5" />
-                    <span>Hosting</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {profile.is_host ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Shield className="h-5 w-5 text-green-600" />
-                        <span className="text-green-600 font-medium">You are a verified host</span>
-                      </div>
-                      <p className="text-muted-foreground">
-                        You can create and manage property listings.
-                      </p>
-                      <Button onClick={() => navigate("/host/onboarding")}>
-                        Create New Listing
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-muted-foreground">
-                        Become a host and start earning by renting out your property.
-                      </p>
-                      <Button onClick={becomeHost} disabled={loading}>
-                        {loading ? "Processing..." : "Become a Host"}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             <TabsContent value="properties">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Package className="h-5 w-5" />
-                    <span>My Properties</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {profile.is_host ? (
-                    <MyProperties />
-                  ) : (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        You need to become a host to create and manage properties.
-                      </p>
-                      <Button onClick={becomeHost} disabled={loading}>
-                        {loading ? "Processing..." : "Become a Host"}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                {/* Host Status Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Home className="h-5 w-5" />
+                      <span>Hosting Status</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {profile.is_host ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-2">
+                          <Shield className="h-5 w-5 text-green-600" />
+                          <span className="text-green-600 font-medium">You are a verified host</span>
+                        </div>
+                        <p className="text-muted-foreground">
+                          You can create and manage property listings below.
+                        </p>
+                        <Button onClick={() => navigate("/host/onboarding")}>
+                          Create New Listing
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <p className="text-muted-foreground">
+                          Become a host and start earning by renting out your property.
+                        </p>
+                        <Button onClick={becomeHost} disabled={loading}>
+                          {loading ? "Processing..." : "Become a Host"}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Properties Management Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Package className="h-5 w-5" />
+                      <span>My Properties</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {profile.is_host ? (
+                      <MyProperties />
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-muted-foreground mb-4">
+                          You need to become a host to create and manage properties.
+                        </p>
+                        <Button onClick={becomeHost} disabled={loading}>
+                          {loading ? "Processing..." : "Become a Host"}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="saved">

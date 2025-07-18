@@ -41,6 +41,7 @@ function App() {
                 <Route path="/booking/:id" element={<BookingConfirmation />} />
                 <Route path="/search" element={<SearchResults />} />
                 <Route path="/host/onboarding" element={<HostOnboarding />} />
+                <Route path="/host/edit-property/:propertyId" element={<HostOnboarding />} />
                 <Route path="/become-host" element={<BecomeHost />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/help" element={<Help />} />
