@@ -20,6 +20,7 @@ import Safety from "./pages/Safety";
 import Privacy from "./pages/Privacy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
+import Payment from "./pages/Payment";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ function App() {
                 <Route path="/safety" element={<Safety />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/payment/:bookingId" element={<Payment />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
