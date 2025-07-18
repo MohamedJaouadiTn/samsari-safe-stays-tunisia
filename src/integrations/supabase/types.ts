@@ -110,6 +110,8 @@ export type Database = {
         Row: {
           booking_id: string | null
           created_at: string
+          deleted_by_guest: boolean | null
+          deleted_by_host: boolean | null
           guest_id: string
           host_id: string
           id: string
@@ -120,6 +122,8 @@ export type Database = {
         Insert: {
           booking_id?: string | null
           created_at?: string
+          deleted_by_guest?: boolean | null
+          deleted_by_host?: boolean | null
           guest_id: string
           host_id: string
           id?: string
@@ -130,6 +134,8 @@ export type Database = {
         Update: {
           booking_id?: string | null
           created_at?: string
+          deleted_by_guest?: boolean | null
+          deleted_by_host?: boolean | null
           guest_id?: string
           host_id?: string
           id?: string
