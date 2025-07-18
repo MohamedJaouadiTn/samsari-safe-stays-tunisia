@@ -58,8 +58,42 @@ const Inbox: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchConversations();
+      
+      // Set up real-time subscription for conversations
+      const conversationChannel = supabase
+        .channel('conversations-changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'conversations'
+        }, () => {
+          fetchConversations();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        }, (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // If it's a new message in the active conversation, add it to messages
+            if (activeConversation && payload.new.conversation_id === activeConversation.id) {
+              setMessages(prev => [...prev, payload.new as Message]);
+            }
+            // Refresh conversations to update last message and unread count
+            fetchConversations();
+          }
+          if (payload.eventType === 'UPDATE') {
+            // If message was marked as read, refresh conversations
+            fetchConversations();
+          }
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(conversationChannel);
+      };
     }
-  }, [user]);
+  }, [user, activeConversation?.id]);
 
   useEffect(() => {
     if (activeConversation) {
@@ -91,7 +125,7 @@ const Inbox: React.FC = () => {
 
       if (error) throw error;
 
-      // Get profiles for other users
+      // Get profiles for other users using the profiles table, not auth.users
       const otherUserIds = conversationsData?.map(conv => 
         conv.host_id === user.id ? conv.guest_id : conv.host_id
       ) || [];
@@ -205,27 +239,15 @@ const Inbox: React.FC = () => {
 
       if (error) throw error;
 
-      setMessages(prev => [...prev, data]);
-      
       // Update conversation's last message
       await supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', activeConversation.id);
       
-      setConversations(prev => 
-        prev.map(conv => 
-          conv.id === activeConversation.id 
-            ? { 
-                ...conv, 
-                last_message: newMessage.trim(),
-                last_message_time: new Date().toISOString()
-              }
-            : conv
-        )
-      );
-      
       setNewMessage('');
+      
+      // The real-time subscription will handle adding the message to the UI
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -284,10 +306,24 @@ const Inbox: React.FC = () => {
     }
   };
 
+  const totalUnreadCount = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
+
   if (!user) return null;
 
   return (
     <div className="w-full">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold flex items-center">
+          <MessageSquare className="h-5 w-5 mr-2" />
+          Messages
+          {totalUnreadCount > 0 && (
+            <Badge variant="default" className="ml-2">
+              {totalUnreadCount}
+            </Badge>
+          )}
+        </h2>
+      </div>
+
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="all">All Messages</TabsTrigger>
