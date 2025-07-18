@@ -49,8 +49,11 @@ export type Database = {
           created_at: string
           guest_id: string
           host_id: string
+          host_response: string | null
           id: string
           property_id: string
+          request_message: string | null
+          responded_at: string | null
           status: string | null
           total_price: number
           updated_at: string
@@ -65,8 +68,11 @@ export type Database = {
           created_at?: string
           guest_id: string
           host_id: string
+          host_response?: string | null
           id?: string
           property_id: string
+          request_message?: string | null
+          responded_at?: string | null
           status?: string | null
           total_price: number
           updated_at?: string
@@ -81,8 +87,11 @@ export type Database = {
           created_at?: string
           guest_id?: string
           host_id?: string
+          host_response?: string | null
           id?: string
           property_id?: string
+          request_message?: string | null
+          responded_at?: string | null
           status?: string | null
           total_price?: number
           updated_at?: string
@@ -90,6 +99,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bookings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          guest_id: string
+          host_id: string
+          id: string
+          property_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          guest_id: string
+          host_id: string
+          id?: string
+          property_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          guest_id?: string
+          host_id?: string
+          id?: string
+          property_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
@@ -135,6 +192,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          message_type: string | null
+          read: boolean | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_type?: string | null
+          read?: boolean | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_type?: string | null
+          read?: boolean | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

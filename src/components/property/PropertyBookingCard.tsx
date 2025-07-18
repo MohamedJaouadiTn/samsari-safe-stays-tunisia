@@ -1,142 +1,136 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Calendar, Heart } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Tables } from "@/integrations/supabase/types";
-
-type Property = Tables<"properties">;
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { CalendarIcon, Users, MessageSquare } from 'lucide-react';
+import { format, differenceInDays } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface PropertyBookingCardProps {
-  property: Property;
+  property: {
+    id: string;
+    price_per_night: number;
+    minimum_stay?: number;
+    host_id: string;
+  };
 }
 
-const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
+const PropertyBookingCard: React.FC<PropertyBookingCardProps> = ({ property }) => {
   const navigate = useNavigate();
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [guests, setGuests] = useState(1);
-  const [isSaved, setIsSaved] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [checkingAvailability, setCheckingAvailability] = useState(false);
-  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
-  const [totalPrice, setTotalPrice] = useState(0);
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [checkIn, setCheckIn] = useState<Date>();
+  const [checkOut, setCheckOut] = useState<Date>();
+  const [guests, setGuests] = useState(1);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkAuthStatus();
-    checkIfSaved();
-  }, [property.id]);
+  const isHost = user?.id === property.host_id;
+  const nights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
+  const totalPrice = nights * property.price_per_night;
+  const minimumStay = property.minimum_stay || 1;
 
-  useEffect(() => {
-    calculateTotalPrice();
-  }, [checkIn, checkOut]);
-
-  const checkAuthStatus = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsAuthenticated(!!user);
-    } catch (error) {
-      console.error("Error checking auth status:", error);
-    }
-  };
-
-  const checkIfSaved = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("saved_properties")
-        .select("id")
-        .eq("property_id", property.id)
-        .eq("user_id", user.id)
-        .single();
-
-      setIsSaved(!!data);
-    } catch (error) {
-      console.log("Property not saved or error checking saved status");
-    }
-  };
-
-  const calculateTotalPrice = () => {
-    if (!checkIn || !checkOut) {
-      setTotalPrice(0);
+  const handleReserve = async () => {
+    if (!user) {
+      navigate('/auth');
       return;
     }
 
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    
-    if (checkInDate >= checkOutDate) {
-      setTotalPrice(0);
-      return;
-    }
-
-    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    const price = nights * Number(property.price_per_night);
-    setTotalPrice(price);
-  };
-
-  const toggleSave = async () => {
-    if (!isAuthenticated) {
+    if (isHost) {
       toast({
-        title: "Authentication Required",
-        description: "Please log in to save properties",
+        title: "Cannot book own property",
+        description: "You cannot make a reservation for your own property",
         variant: "destructive"
       });
       return;
     }
 
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to save properties",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (!checkIn || !checkOut) {
+      toast({
+        title: "Missing dates",
+        description: "Please select check-in and check-out dates",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      if (isSaved) {
+    if (nights < minimumStay) {
+      toast({
+        title: "Minimum stay requirement",
+        description: `This property requires a minimum stay of ${minimumStay} night${minimumStay > 1 ? 's' : ''}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Create booking request
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          property_id: property.id,
+          host_id: property.host_id,
+          guest_id: user.id,
+          check_in_date: format(checkIn, 'yyyy-MM-dd'),
+          check_out_date: format(checkOut, 'yyyy-MM-dd'),
+          total_price: totalPrice,
+          request_message: message.trim() || null,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+
+      // Create or get conversation
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('property_id', property.id)
+        .eq('host_id', property.host_id)
+        .eq('guest_id', user.id)
+        .single();
+
+      if (!existingConv) {
         await supabase
-          .from("saved_properties")
-          .delete()
-          .eq("property_id", property.id)
-          .eq("user_id", user.id);
-        
-        setIsSaved(false);
-        toast({
-          title: "Property Removed",
-          description: "Property removed from saved list"
-        });
-      } else {
-        await supabase
-          .from("saved_properties")
+          .from('conversations')
           .insert({
             property_id: property.id,
-            user_id: user.id
+            host_id: property.host_id,
+            guest_id: user.id,
+            booking_id: booking.id
           });
-        
-        setIsSaved(true);
-        toast({
-          title: "Property Saved",
-          description: "Property added to your saved list"
-        });
       }
+
+      // Store booking details in localStorage for booking confirmation page
+      localStorage.setItem('pendingBooking', JSON.stringify({
+        bookingId: booking.id,
+        propertyId: property.id,
+        checkIn: format(checkIn, 'yyyy-MM-dd'),
+        checkOut: format(checkOut, 'yyyy-MM-dd'),
+        guests,
+        totalPrice,
+        message: message.trim()
+      }));
+
+      navigate(`/booking/${property.id}`);
+
     } catch (error) {
-      console.error("Error toggling save:", error);
+      console.error('Booking error:', error);
       toast({
-        title: "Error",
-        description: "Failed to update saved status",
+        title: "Booking failed",
+        description: "There was an error creating your booking request. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -144,208 +138,209 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
     }
   };
 
-  const checkAvailability = async () => {
-    if (!checkIn || !checkOut) {
+  const handleContactHost = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    if (isHost) {
       toast({
-        title: "Missing Dates",
-        description: "Please select check-in and check-out dates",
+        title: "Cannot message yourself",
+        description: "This is your own property",
         variant: "destructive"
       });
       return;
     }
 
-    if (new Date(checkIn) >= new Date(checkOut)) {
-      toast({
-        title: "Invalid Dates",
-        description: "Check-out date must be after check-in date",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setCheckingAvailability(true);
     try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("property_id", property.id)
-        .or(`and(check_in_date.lte.${checkOut},check_out_date.gte.${checkIn})`);
+      // Check if conversation exists
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('property_id', property.id)
+        .eq('host_id', property.host_id)
+        .eq('guest_id', user.id)
+        .single();
 
-      if (error) throw error;
-
-      const available = !data || data.length === 0;
-      setIsAvailable(available);
-      
-      if (available) {
-        toast({
-          title: "Available!",
-          description: "This property is available for your selected dates",
-        });
-      } else {
-        toast({
-          title: "Not Available",
-          description: "This property is booked for your selected dates",
-          variant: "destructive"
-        });
+      if (!existingConv) {
+        // Create new conversation
+        await supabase
+          .from('conversations')
+          .insert({
+            property_id: property.id,
+            host_id: property.host_id,
+            guest_id: user.id
+          });
       }
+
+      navigate('/profile?tab=inbox');
     } catch (error) {
-      console.error("Error checking availability:", error);
+      console.error('Error creating conversation:', error);
       toast({
         title: "Error",
-        description: "Failed to check availability",
+        description: "Failed to start conversation",
         variant: "destructive"
       });
-    } finally {
-      setCheckingAvailability(false);
     }
   };
 
-  const handleReservation = async () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to make a reservation",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!checkIn || !checkOut) {
-      toast({
-        title: "Missing Dates",
-        description: "Please select check-in and check-out dates",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (new Date(checkIn) >= new Date(checkOut)) {
-      toast({
-        title: "Invalid Dates",
-        description: "Check-out date must be after check-in date",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (isAvailable === false) {
-      toast({
-        title: "Not Available",
-        description: "This property is not available for your selected dates",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Store booking details in localStorage
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    const bookingDetails = {
-      checkIn,
-      checkOut,
-      guests,
-      nights,
-      totalPrice
-    };
-
-    localStorage.setItem('bookingDetails', JSON.stringify(bookingDetails));
-
-    // Navigate to booking confirmation page
-    navigate(`/booking/${property.id}`);
-  };
+  if (isHost) {
+    return (
+      <Card className="sticky top-6">
+        <CardHeader>
+          <CardTitle>Your Property</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center py-6">
+            <p className="text-muted-foreground mb-4">
+              This is your property listing
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/profile?tab=properties')}
+              className="w-full"
+            >
+              Manage Property
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="sticky top-4">
+    <Card className="sticky top-6">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="text-2xl font-bold">
-            {property.price_per_night} TND
-          </span>
-          <span className="text-sm text-muted-foreground">per night</span>
+        <CardTitle className="flex justify-between items-center">
+          <span>{property.price_per_night} TND</span>
+          <span className="text-sm font-normal text-muted-foreground">per night</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2">
           <div>
             <Label htmlFor="checkin">Check-in</Label>
-            <Input
-              id="checkin"
-              type="date"
-              value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="checkin"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !checkIn && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {checkIn ? format(checkIn, "MMM dd") : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={checkIn}
+                  onSelect={setCheckIn}
+                  disabled={(date) => date < new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label htmlFor="checkout">Check-out</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="checkout"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !checkOut && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {checkOut ? format(checkOut, "MMM dd") : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={checkOut}
+                  onSelect={setCheckOut}
+                  disabled={(date) => !checkIn || date <= checkIn}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="guests">Guests</Label>
+          <div className="flex items-center space-x-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
             <Input
-              id="checkout"
-              type="date"
-              value={checkOut}
-              onChange={(e) => setCheckOut(e.target.value)}
-              min={checkIn || new Date().toISOString().split('T')[0]}
+              id="guests"
+              type="number"
+              min="1"
+              value={guests}
+              onChange={(e) => setGuests(Math.max(1, parseInt(e.target.value) || 1))}
+              className="flex-1"
             />
           </div>
         </div>
-        
+
         <div>
-          <Label htmlFor="guests">Guests</Label>
-          <Input
-            id="guests"
-            type="number"
-            value={guests}
-            onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
-            min="1"
-            max={property.max_guests}
+          <Label htmlFor="message">Message to Host (Optional)</Label>
+          <Textarea
+            id="message"
+            placeholder="Tell the host about your trip..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={3}
           />
         </div>
-        
-        {totalPrice > 0 && (
-          <div className="py-2 border-t border-b">
-            <div className="flex justify-between items-center">
-              <span>Total</span>
-              <span className="font-semibold">{totalPrice} TND</span>
+
+        {checkIn && checkOut && nights > 0 && (
+          <div className="space-y-2 p-4 bg-muted rounded-lg">
+            <div className="flex justify-between">
+              <span>{property.price_per_night} TND × {nights} night{nights > 1 ? 's' : ''}</span>
+              <span>{totalPrice} TND</span>
             </div>
+            <div className="flex justify-between font-semibold">
+              <span>Total</span>
+              <span>{totalPrice} TND</span>
+            </div>
+            {nights < minimumStay && (
+              <p className="text-sm text-destructive">
+                Minimum stay: {minimumStay} night{minimumStay > 1 ? 's' : ''}
+              </p>
+            )}
           </div>
         )}
-        
-        <Button 
-          onClick={checkAvailability}
-          className="w-full"
-          disabled={!checkIn || !checkOut || checkingAvailability}
-          variant={isAvailable === false ? "destructive" : "default"}
-        >
-          <Calendar className="h-4 w-4 mr-2" />
-          {checkingAvailability ? "Checking..." : "Check Availability"}
-        </Button>
-        
-        <Button 
-          onClick={handleReservation}
-          className="w-full"
-          disabled={!checkIn || !checkOut || isAvailable === false || loading}
-          variant={isAvailable === true ? "default" : "outline"}
-        >
-          {loading ? "Processing..." : "Reserve Now"}
-        </Button>
 
-        <Button 
-          variant="outline" 
-          onClick={toggleSave}
-          className="w-full"
-          disabled={loading}
-        >
-          <Heart className={`h-4 w-4 mr-2 ${isSaved ? 'fill-current' : ''}`} />
-          {isSaved ? 'Saved' : 'Save Property'}
-        </Button>
-        
-        <div className="text-sm text-muted-foreground">
-          <p>You won't be charged yet</p>
-          {!isAuthenticated && (
-            <p className="mt-2 text-amber-600">You need to be logged in to make a reservation</p>
-          )}
+        <div className="space-y-2">
+          <Button 
+            onClick={handleReserve} 
+            disabled={loading || !checkIn || !checkOut || nights < minimumStay}
+            className="w-full"
+          >
+            {loading ? "Processing..." : "Reserve"}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={handleContactHost}
+            className="w-full flex items-center"
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Contact Host
+          </Button>
         </div>
+
+        <p className="text-xs text-muted-foreground text-center">
+          You won't be charged yet. The host needs to approve your request.
+        </p>
       </CardContent>
     </Card>
   );

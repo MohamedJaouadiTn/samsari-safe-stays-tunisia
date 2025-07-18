@@ -9,7 +9,8 @@ import {
   Send, 
   Clock, 
   Home,
-  Calendar
+  Calendar,
+  Trash2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,13 +20,14 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 type Conversation = {
   id: string;
   property_id: string;
-  property_title: string;
+  property_title?: string;
   other_user_id: string;
-  other_user_name: string;
+  other_user_name?: string;
   last_message: string;
   last_message_time: string;
   unread_count: number;
@@ -53,120 +55,170 @@ const Inbox: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  // For now, since we don't have a real messaging system implemented,
-  // we'll use this mock data for demonstration purposes
   useEffect(() => {
     if (user) {
-      // Simulating API call with timeout
-      setTimeout(() => {
-        const mockConversations: Conversation[] = [
-          {
-            id: '1',
-            property_id: 'prop1',
-            property_title: 'Beautiful Villa in Hammamet',
-            other_user_id: 'user1',
-            other_user_name: 'Ahmed Ben Ali',
-            last_message: 'Hello, I have a question about your property',
-            last_message_time: new Date().toISOString(),
-            unread_count: 2,
-            booking_id: 'book1',
-            check_in_date: '2025-08-01',
-            check_out_date: '2025-08-05'
-          },
-          {
-            id: '2',
-            property_id: 'prop2',
-            property_title: 'Cozy Apartment in Sousse',
-            other_user_id: 'user2',
-            other_user_name: 'Leila Mejri',
-            last_message: 'Thanks for accepting my booking!',
-            last_message_time: new Date(Date.now() - 86400000).toISOString(), // yesterday
-            unread_count: 0
-          }
-        ];
-
-        setConversations(mockConversations);
-        setLoading(false);
-      }, 1000);
+      fetchConversations();
     }
   }, [user]);
 
   useEffect(() => {
     if (activeConversation) {
       loadMessages(activeConversation.id);
-      
-      // Mark messages as read
-      if (activeConversation.unread_count > 0) {
-        setConversations(prevConversations => 
-          prevConversations.map(conv => 
-            conv.id === activeConversation.id 
-              ? { ...conv, unread_count: 0 }
-              : conv
-          )
-        );
-      }
+      markMessagesAsRead(activeConversation.id);
     }
   }, [activeConversation]);
 
-  const loadMessages = (conversationId: string) => {
-    // Simulate loading messages
-    setTimeout(() => {
-      const mockMessages: Message[] = [
-        {
-          id: 'm1',
-          conversation_id: conversationId,
-          sender_id: 'user1', // the other person
-          content: 'Hello, I have a question about your property',
-          created_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-          read: true
-        },
-        {
-          id: 'm2',
-          conversation_id: conversationId,
-          sender_id: user?.id || '', // current user
-          content: 'Hi there! What would you like to know?',
-          created_at: new Date(Date.now() - 3000000).toISOString(), // 50 minutes ago
-          read: true
-        },
-        {
-          id: 'm3',
-          conversation_id: conversationId,
-          sender_id: 'user1',
-          content: 'Is the property close to the beach?',
-          created_at: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-          read: conversationId !== '1'
-        }
-      ];
+  const fetchConversations = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const { data: conversationsData, error } = await supabase
+        .from('conversations')
+        .select(`
+          id,
+          property_id,
+          host_id,
+          guest_id,
+          booking_id,
+          created_at,
+          properties (
+            title
+          )
+        `)
+        .or(`host_id.eq.${user.id},guest_id.eq.${user.id}`)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Get profiles for other users
+      const otherUserIds = conversationsData?.map(conv => 
+        conv.host_id === user.id ? conv.guest_id : conv.host_id
+      ) || [];
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', otherUserIds);
+
+      // Get last messages and unread counts
+      const conversationIds = conversationsData?.map(conv => conv.id) || [];
       
-      setMessages(mockMessages);
-    }, 500);
+      const { data: lastMessages } = await supabase
+        .from('messages')
+        .select('conversation_id, content, created_at')
+        .in('conversation_id', conversationIds)
+        .order('created_at', { ascending: false });
+
+      const { data: unreadCounts } = await supabase
+        .from('messages')
+        .select('conversation_id, sender_id')
+        .in('conversation_id', conversationIds)
+        .eq('read', false)
+        .neq('sender_id', user.id);
+
+      const formattedConversations: Conversation[] = conversationsData?.map(conv => {
+        const otherUserId = conv.host_id === user.id ? conv.guest_id : conv.host_id;
+        const otherUser = profilesData?.find(p => p.id === otherUserId);
+        const lastMessage = lastMessages?.find(m => m.conversation_id === conv.id);
+        const unreadCount = unreadCounts?.filter(m => m.conversation_id === conv.id).length || 0;
+
+        return {
+          id: conv.id,
+          property_id: conv.property_id,
+          property_title: (conv.properties as any)?.title || 'Property',
+          other_user_id: otherUserId,
+          other_user_name: otherUser?.full_name || 'Unknown User',
+          last_message: lastMessage?.content || 'No messages yet',
+          last_message_time: lastMessage?.created_at || conv.created_at,
+          unread_count: unreadCount,
+          booking_id: conv.booking_id
+        };
+      }) || [];
+
+      setConversations(formattedConversations);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load conversations",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSendMessage = () => {
+  const loadMessages = async (conversationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
+
+  const markMessagesAsRead = async (conversationId: string) => {
+    if (!user) return;
+    
+    try {
+      await supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('conversation_id', conversationId)
+        .neq('sender_id', user.id);
+
+      // Update unread count in local state
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === conversationId 
+            ? { ...conv, unread_count: 0 }
+            : conv
+        )
+      );
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeConversation || !user) return;
     
     setSendingMessage(true);
     
-    // Simulate sending a message
-    setTimeout(() => {
-      const newMsg: Message = {
-        id: `m${Date.now()}`,
-        conversation_id: activeConversation.id,
-        sender_id: user.id,
-        content: newMessage,
-        created_at: new Date().toISOString(),
-        read: false
-      };
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: activeConversation.id,
+          sender_id: user.id,
+          content: newMessage.trim()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setMessages(prev => [...prev, data]);
       
-      setMessages(prev => [...prev, newMsg]);
+      // Update conversation's last message
+      await supabase
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', activeConversation.id);
       
-      // Update last message in conversation list
-      setConversations(prevConversations => 
-        prevConversations.map(conv => 
+      setConversations(prev => 
+        prev.map(conv => 
           conv.id === activeConversation.id 
             ? { 
                 ...conv, 
-                last_message: newMessage,
+                last_message: newMessage.trim(),
                 last_message_time: new Date().toISOString()
               }
             : conv
@@ -174,8 +226,46 @@ const Inbox: React.FC = () => {
       );
       
       setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      });
+    } finally {
       setSendingMessage(false);
-    }, 500);
+    }
+  };
+
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+
+      if (error) throw error;
+
+      setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+      
+      if (activeConversation?.id === conversationId) {
+        setActiveConversation(null);
+        setMessages([]);
+      }
+
+      toast({
+        title: "Conversation deleted",
+        description: "The conversation has been removed"
+      });
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete conversation",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatMessageTime = (dateString: string) => {
@@ -230,38 +320,66 @@ const Inbox: React.FC = () => {
                   ) : (
                     <div className="space-y-2">
                       {conversations.map((conversation) => (
-                        <div 
-                          key={conversation.id}
-                          className={`p-3 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
-                            activeConversation?.id === conversation.id ? 'bg-muted' : ''
-                          }`}
-                          onClick={() => setActiveConversation(conversation)}
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <div className="font-medium flex items-center">
-                              <UserRound className="h-4 w-4 mr-1.5" />
-                              {conversation.other_user_name}
-                              {conversation.unread_count > 0 && (
-                                <Badge variant="default" className="ml-2 px-1.5 py-0 h-5 min-w-5 flex items-center justify-center">
-                                  {conversation.unread_count}
-                                </Badge>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {formatMessageTime(conversation.last_message_time)}
-                            </span>
-                          </div>
-                          <div className="flex items-start">
-                            <div className="text-xs text-muted-foreground truncate max-w-[180px]">
-                              <span className="inline-flex items-center">
-                                <Home className="h-3 w-3 mr-1 inline" />
-                                {conversation.property_title}
+                        <div key={conversation.id} className="relative group">
+                          <div 
+                            className={`p-3 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
+                              activeConversation?.id === conversation.id ? 'bg-muted' : ''
+                            }`}
+                            onClick={() => setActiveConversation(conversation)}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="font-medium flex items-center">
+                                <UserRound className="h-4 w-4 mr-1.5" />
+                                {conversation.other_user_name}
+                                {conversation.unread_count > 0 && (
+                                  <Badge variant="default" className="ml-2 px-1.5 py-0 h-5 min-w-5 flex items-center justify-center">
+                                    {conversation.unread_count}
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {formatMessageTime(conversation.last_message_time)}
                               </span>
                             </div>
+                            <div className="flex items-start">
+                              <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                                <span className="inline-flex items-center">
+                                  <Home className="h-3 w-3 mr-1 inline" />
+                                  {conversation.property_title}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm truncate mt-1">
+                              {conversation.last_message}
+                            </p>
                           </div>
-                          <p className="text-sm truncate mt-1">
-                            {conversation.last_message}
-                          </p>
+                          
+                          {/* Delete button */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this conversation? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteConversation(conversation.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       ))}
                     </div>
@@ -295,31 +413,6 @@ const Inbox: React.FC = () => {
                           {activeConversation.property_title}
                         </p>
                       </div>
-                      
-                      {activeConversation.booking_id && (
-                        <div className="bg-muted rounded-md p-2 text-xs">
-                          <div className="flex items-center font-medium mb-1">
-                            <Calendar className="h-3.5 w-3.5 mr-1" />
-                            Booking Details
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span>Check-in:</span>
-                            <span className="font-medium">
-                              {activeConversation.check_in_date ? 
-                                format(new Date(activeConversation.check_in_date), 'MMM d, yyyy') : 
-                                'N/A'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span>Check-out:</span>
-                            <span className="font-medium">
-                              {activeConversation.check_out_date ? 
-                                format(new Date(activeConversation.check_out_date), 'MMM d, yyyy') : 
-                                'N/A'}
-                            </span>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </CardHeader>
                   
