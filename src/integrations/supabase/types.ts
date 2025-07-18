@@ -208,6 +208,7 @@ export type Database = {
           title: string
           updated_at: string
           visitor_policy: string | null
+          welcome_message: string | null
         }
         Insert: {
           address?: string | null
@@ -241,6 +242,7 @@ export type Database = {
           title: string
           updated_at?: string
           visitor_policy?: string | null
+          welcome_message?: string | null
         }
         Update: {
           address?: string | null
@@ -274,6 +276,7 @@ export type Database = {
           title?: string
           updated_at?: string
           visitor_policy?: string | null
+          welcome_message?: string | null
         }
         Relationships: []
       }
