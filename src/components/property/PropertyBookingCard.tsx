@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ interface PropertyBookingCardProps {
 }
 
 const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
+  const navigate = useNavigate();
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
@@ -59,7 +61,6 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
 
       setIsSaved(!!data);
     } catch (error) {
-      // Property not saved or error
       console.log("Property not saved or error checking saved status");
     }
   };
@@ -199,7 +200,7 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
     }
   };
 
-  const createReservation = async () => {
+  const handleReservation = async () => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
@@ -236,77 +237,23 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
       return;
     }
 
-    // Check availability again before creating the reservation
-    setLoading(true);
-    try {
-      // First, check if these dates are available
-      const { data: existingBookings, error: checkError } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("property_id", property.id)
-        .or(`and(check_in_date.lte.${checkOut},check_out_date.gte.${checkIn})`);
+    // Store booking details in localStorage
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    const bookingDetails = {
+      checkIn,
+      checkOut,
+      guests,
+      nights,
+      totalPrice
+    };
 
-      if (checkError) throw checkError;
+    localStorage.setItem('bookingDetails', JSON.stringify(bookingDetails));
 
-      if (existingBookings && existingBookings.length > 0) {
-        toast({
-          title: "Not Available",
-          description: "Sorry, this property is now booked for your selected dates",
-          variant: "destructive"
-        });
-        setIsAvailable(false);
-        return;
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to make a reservation",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const checkInDate = new Date(checkIn);
-      const checkOutDate = new Date(checkOut);
-      const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-      const totalPrice = nights * Number(property.price_per_night);
-
-      const { data: newBooking, error } = await supabase
-        .from("bookings")
-        .insert({
-          property_id: property.id,
-          guest_id: user.id,
-          host_id: property.host_id,
-          check_in_date: checkIn,
-          check_out_date: checkOut,
-          total_price: totalPrice,
-          status: 'pending'
-        })
-        .select();
-
-      if (error) throw error;
-
-      toast({
-        title: "Reservation Created",
-        description: "Your reservation has been submitted successfully!"
-      });
-
-      setCheckIn("");
-      setCheckOut("");
-      setGuests(1);
-      setIsAvailable(null);
-    } catch (error) {
-      console.error("Error creating reservation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create reservation",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    // Navigate to booking confirmation page
+    navigate(`/booking/${property.id}`);
   };
 
   return (
@@ -375,7 +322,7 @@ const PropertyBookingCard = ({ property }: PropertyBookingCardProps) => {
         </Button>
         
         <Button 
-          onClick={createReservation}
+          onClick={handleReservation}
           className="w-full"
           disabled={!checkIn || !checkOut || isAvailable === false || loading}
           variant={isAvailable === true ? "default" : "outline"}
