@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,11 +92,11 @@ const HostOnboarding = () => {
           bathrooms: data.bathrooms || 1,
           max_guests: data.max_guests || 4,
           price_per_night: data.price_per_night || 0,
-          amenities: data.amenities || [],
-          photos: data.photos || [],
-          safety_features: data.safety_features || [],
-          sleeping_arrangements: data.sleeping_arrangements || [],
-          bed_types: data.bed_types || [],
+          amenities: Array.isArray(data.amenities) ? data.amenities : [],
+          photos: Array.isArray(data.photos) ? data.photos : [],
+          safety_features: Array.isArray(data.safety_features) ? data.safety_features : [],
+          sleeping_arrangements: Array.isArray(data.sleeping_arrangements) ? data.sleeping_arrangements : [],
+          bed_types: Array.isArray(data.bed_types) ? data.bed_types : [],
           extra_beds: data.extra_beds || 0,
           minimum_stay: data.minimum_stay || 1,
           cancellation_policy: data.cancellation_policy || "Moderate",
