@@ -57,7 +57,7 @@ const ProfileDropdown = ({ profile, userEmail }: ProfileDropdownProps) => {
         
         canvas.toBlob((blob) => {
           if (blob) {
-            const compress File = new File([blob], file.name, {
+            const compressedFile = new File([blob], file.name, {
               type: 'image/jpeg',
               lastModified: Date.now(),
             });
