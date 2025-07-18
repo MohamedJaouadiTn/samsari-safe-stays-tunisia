@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Settings, Camera, Home, LogOut, Shield, Mail, Package, MessageSquare, Heart, Calendar, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +29,7 @@ const Profile = () => {
   const [profile, setProfile] = useState({
     full_name: "",
     phone: "",
+    bio: "",
     avatar_url: "",
     is_host: false,
     verification_status: "unverified"
@@ -46,15 +48,50 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-    if (error) {
-      console.log("Profile fetch error:", error);
-    } else if (data) {
-      setProfile(data);
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+        
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          await createProfile();
+        } else {
+          console.log("Profile fetch error:", error);
+        }
+      } else if (data) {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    }
+  };
+
+  const createProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || "",
+          avatar_url: user.user_metadata?.avatar_url || ""
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        console.error("Profile creation error:", error);
+      } else if (data) {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error("Error creating profile:", error);
     }
   };
 
@@ -117,6 +154,7 @@ const Profile = () => {
         id: user.id,
         full_name: profile.full_name,
         phone: profile.phone,
+        bio: profile.bio,
         avatar_url: profile.avatar_url,
         updated_at: new Date().toISOString()
       });
@@ -187,7 +225,7 @@ const Profile = () => {
           </div>
 
           <Tabs defaultValue={defaultTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
               <TabsTrigger value="properties">My Properties</TabsTrigger>
@@ -226,6 +264,16 @@ const Profile = () => {
                       />
                     </div>
                     <div>
+                      <Label htmlFor="bio">Bio</Label>
+                      <Textarea 
+                        id="bio" 
+                        value={profile.bio} 
+                        onChange={e => setProfile({ ...profile, bio: e.target.value })} 
+                        placeholder="Tell others about yourself..." 
+                        rows={3}
+                      />
+                    </div>
+                    <div>
                       <Label htmlFor="phone">Phone Number</Label>
                       <Input 
                         id="phone" 
@@ -256,7 +304,6 @@ const Profile = () => {
 
             <TabsContent value="properties">
               <div className="space-y-6">
-                {/* Show hosting status if not a host */}
                 {!profile.is_host && (
                   <Card>
                     <CardHeader>
@@ -278,7 +325,6 @@ const Profile = () => {
                   </Card>
                 )}
 
-                {/* Always show MyProperties component - it handles both host and non-host states */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">

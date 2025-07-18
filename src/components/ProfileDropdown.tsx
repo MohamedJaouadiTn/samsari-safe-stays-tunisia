@@ -52,11 +52,39 @@ const ProfileDropdown = () => {
       
       if (error) {
         console.error('Profile fetch error:', error);
+        // Create profile if it doesn't exist
+        if (error.code === 'PGRST116') {
+          await createProfile();
+        }
       } else {
         setProfile(data);
       }
     } catch (error) {
       console.error('Profile fetch error:', error);
+    }
+  };
+
+  const createProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || '',
+          avatar_url: user.user_metadata?.avatar_url || ''
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Profile creation error:', error);
+      } else {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Profile creation error:', error);
     }
   };
 
