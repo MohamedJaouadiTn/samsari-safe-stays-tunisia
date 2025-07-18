@@ -1,17 +1,8 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  MessageSquare, 
-  UserRound, 
-  Send, 
-  Clock, 
-  Home,
-  Calendar,
-  Trash2
-} from 'lucide-react';
+import { MessageSquare, UserRound, Send, Clock, Home, Calendar, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,7 +12,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-
 type Conversation = {
   id: string;
   property_id: string;
@@ -37,7 +27,6 @@ type Conversation = {
   deleted_by_host?: boolean;
   deleted_by_guest?: boolean;
 };
-
 type Message = {
   id: string;
   conversation_id: string;
@@ -46,10 +35,13 @@ type Message = {
   created_at: string;
   read: boolean;
 };
-
 const Inbox: React.FC = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,81 +49,69 @@ const Inbox: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth"
+    });
   };
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
   useEffect(() => {
     if (user) {
       fetchConversations();
-      
-      // Set up real-time subscription for conversations
-      const conversationChannel = supabase
-        .channel('conversations-changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'conversations'
-        }, () => {
-          fetchConversations();
-        })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        }, (payload) => {
-          console.log('Message event:', payload);
-          if (payload.eventType === 'INSERT') {
-            const newMessage = payload.new as Message;
-            // If it's a new message in the active conversation, add it to messages
-            if (activeConversation && newMessage.conversation_id === activeConversation.id) {
-              setMessages(prev => [...prev, newMessage]);
-            }
-            // Refresh conversations to update last message and unread count
-            fetchConversations();
-          }
-          if (payload.eventType === 'UPDATE') {
-            const updatedMessage = payload.new as Message;
-            // If message was marked as read, update local state
-            if (activeConversation && updatedMessage.conversation_id === activeConversation.id) {
-              setMessages(prev => 
-                prev.map(msg => 
-                  msg.id === updatedMessage.id ? updatedMessage : msg
-                )
-              );
-            }
-            // Refresh conversations to update unread count
-            fetchConversations();
-          }
-        })
-        .subscribe();
 
+      // Set up real-time subscription for conversations
+      const conversationChannel = supabase.channel('conversations-changes').on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'conversations'
+      }, () => {
+        fetchConversations();
+      }).on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'messages'
+      }, payload => {
+        console.log('Message event:', payload);
+        if (payload.eventType === 'INSERT') {
+          const newMessage = payload.new as Message;
+          // If it's a new message in the active conversation, add it to messages
+          if (activeConversation && newMessage.conversation_id === activeConversation.id) {
+            setMessages(prev => [...prev, newMessage]);
+          }
+          // Refresh conversations to update last message and unread count
+          fetchConversations();
+        }
+        if (payload.eventType === 'UPDATE') {
+          const updatedMessage = payload.new as Message;
+          // If message was marked as read, update local state
+          if (activeConversation && updatedMessage.conversation_id === activeConversation.id) {
+            setMessages(prev => prev.map(msg => msg.id === updatedMessage.id ? updatedMessage : msg));
+          }
+          // Refresh conversations to update unread count
+          fetchConversations();
+        }
+      }).subscribe();
       return () => {
         supabase.removeChannel(conversationChannel);
       };
     }
   }, [user, activeConversation?.id]);
-
   useEffect(() => {
     if (activeConversation) {
       loadMessages(activeConversation.id);
       markMessagesAsRead(activeConversation.id);
     }
   }, [activeConversation]);
-
   const fetchConversations = async () => {
     if (!user) return;
-    
     setLoading(true);
     try {
-      const { data: conversationsData, error } = await supabase
-        .from('conversations')
-        .select(`
+      const {
+        data: conversationsData,
+        error
+      } = await supabase.from('conversations').select(`
           id,
           property_id,
           host_id,
@@ -144,10 +124,9 @@ const Inbox: React.FC = () => {
           properties (
             title
           )
-        `)
-        .or(`host_id.eq.${user.id},guest_id.eq.${user.id}`)
-        .order('updated_at', { ascending: false });
-
+        `).or(`host_id.eq.${user.id},guest_id.eq.${user.id}`).order('updated_at', {
+        ascending: false
+      });
       if (error) throw error;
 
       // Filter out conversations that the current user has deleted
@@ -159,37 +138,26 @@ const Inbox: React.FC = () => {
       }) || [];
 
       // Get profiles for other users
-      const otherUserIds = filteredConversations?.map(conv => 
-        conv.host_id === user.id ? conv.guest_id : conv.host_id
-      ) || [];
-
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', otherUserIds);
+      const otherUserIds = filteredConversations?.map(conv => conv.host_id === user.id ? conv.guest_id : conv.host_id) || [];
+      const {
+        data: profilesData
+      } = await supabase.from('profiles').select('id, full_name').in('id', otherUserIds);
 
       // Get last messages and unread counts
       const conversationIds = filteredConversations?.map(conv => conv.id) || [];
-      
-      const { data: lastMessages } = await supabase
-        .from('messages')
-        .select('conversation_id, content, created_at')
-        .in('conversation_id', conversationIds)
-        .order('created_at', { ascending: false });
-
-      const { data: unreadCounts } = await supabase
-        .from('messages')
-        .select('conversation_id, sender_id')
-        .in('conversation_id', conversationIds)
-        .eq('read', false)
-        .neq('sender_id', user.id);
-
+      const {
+        data: lastMessages
+      } = await supabase.from('messages').select('conversation_id, content, created_at').in('conversation_id', conversationIds).order('created_at', {
+        ascending: false
+      });
+      const {
+        data: unreadCounts
+      } = await supabase.from('messages').select('conversation_id, sender_id').in('conversation_id', conversationIds).eq('read', false).neq('sender_id', user.id);
       const formattedConversations: Conversation[] = filteredConversations?.map(conv => {
         const otherUserId = conv.host_id === user.id ? conv.guest_id : conv.host_id;
         const otherUser = profilesData?.find(p => p.id === otherUserId);
         const lastMessage = lastMessages?.find(m => m.conversation_id === conv.id);
         const unreadCount = unreadCounts?.filter(m => m.conversation_id === conv.id).length || 0;
-
         return {
           id: conv.id,
           property_id: conv.property_id,
@@ -204,7 +172,6 @@ const Inbox: React.FC = () => {
           deleted_by_guest: conv.deleted_by_guest
         };
       }) || [];
-
       setConversations(formattedConversations);
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -217,74 +184,59 @@ const Inbox: React.FC = () => {
       setLoading(false);
     }
   };
-
   const loadMessages = async (conversationId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
+      const {
+        data,
+        error
+      } = await supabase.from('messages').select('*').eq('conversation_id', conversationId).order('created_at', {
+        ascending: true
+      });
       if (error) throw error;
       setMessages(data || []);
     } catch (error) {
       console.error('Error loading messages:', error);
     }
   };
-
   const markMessagesAsRead = async (conversationId: string) => {
     if (!user) return;
-    
     try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ read: true })
-        .eq('conversation_id', conversationId)
-        .eq('read', false)
-        .neq('sender_id', user.id);
-
+      const {
+        error
+      } = await supabase.from('messages').update({
+        read: true
+      }).eq('conversation_id', conversationId).eq('read', false).neq('sender_id', user.id);
       if (error) throw error;
 
       // Update unread count in local state
-      setConversations(prev => 
-        prev.map(conv => 
-          conv.id === conversationId 
-            ? { ...conv, unread_count: 0 }
-            : conv
-        )
-      );
+      setConversations(prev => prev.map(conv => conv.id === conversationId ? {
+        ...conv,
+        unread_count: 0
+      } : conv));
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
   };
-
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeConversation || !user) return;
-    
     setSendingMessage(true);
-    
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: activeConversation.id,
-          sender_id: user.id,
-          content: newMessage.trim()
-        })
-        .select()
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('messages').insert({
+        conversation_id: activeConversation.id,
+        sender_id: user.id,
+        content: newMessage.trim()
+      }).select().single();
       if (error) throw error;
 
       // Update conversation's last message time
-      await supabase
-        .from('conversations')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', activeConversation.id);
-      
+      await supabase.from('conversations').update({
+        updated_at: new Date().toISOString()
+      }).eq('id', activeConversation.id);
       setNewMessage('');
-      
+
       // Add message to local state immediately for better UX
       setMessages(prev => [...prev, data]);
     } catch (error) {
@@ -298,57 +250,40 @@ const Inbox: React.FC = () => {
       setSendingMessage(false);
     }
   };
-
   const deleteConversation = async (conversationId: string) => {
     if (!user) return;
-
     try {
       // First, get the conversation to determine user role
-      const { data: conversation, error: fetchError } = await supabase
-        .from('conversations')
-        .select('host_id, guest_id, deleted_by_host, deleted_by_guest')
-        .eq('id', conversationId)
-        .single();
-
+      const {
+        data: conversation,
+        error: fetchError
+      } = await supabase.from('conversations').select('host_id, guest_id, deleted_by_host, deleted_by_guest').eq('id', conversationId).single();
       if (fetchError) throw fetchError;
-
       const isHost = conversation.host_id === user.id;
       const updateField = isHost ? 'deleted_by_host' : 'deleted_by_guest';
-      
-      // Mark as deleted by current user
-      const { error: updateError } = await supabase
-        .from('conversations')
-        .update({ [updateField]: true })
-        .eq('id', conversationId);
 
+      // Mark as deleted by current user
+      const {
+        error: updateError
+      } = await supabase.from('conversations').update({
+        [updateField]: true
+      }).eq('id', conversationId);
       if (updateError) throw updateError;
 
       // Check if both users have now deleted it
-      const bothDeleted = isHost ? 
-        (true && conversation.deleted_by_guest) : 
-        (conversation.deleted_by_host && true);
-
+      const bothDeleted = isHost ? true && conversation.deleted_by_guest : conversation.deleted_by_host && true;
       if (bothDeleted) {
         // If both have deleted, actually delete the conversation and all messages
-        await supabase
-          .from('messages')
-          .delete()
-          .eq('conversation_id', conversationId);
-          
-        await supabase
-          .from('conversations')
-          .delete()
-          .eq('id', conversationId);
+        await supabase.from('messages').delete().eq('conversation_id', conversationId);
+        await supabase.from('conversations').delete().eq('id', conversationId);
       }
 
       // Remove from local state
       setConversations(prev => prev.filter(conv => conv.id !== conversationId));
-      
       if (activeConversation?.id === conversationId) {
         setActiveConversation(null);
         setMessages([]);
       }
-
       toast({
         title: "Conversation deleted",
         description: bothDeleted ? "The conversation has been permanently removed" : "The conversation has been removed from your view"
@@ -362,12 +297,10 @@ const Inbox: React.FC = () => {
       });
     }
   };
-
   const formatMessageTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
     if (diffDays === 0) {
       return format(date, 'HH:mm');
     } else if (diffDays === 1) {
@@ -378,23 +311,11 @@ const Inbox: React.FC = () => {
       return format(date, 'MMM d');
     }
   };
-
   const totalUnreadCount = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
-
   if (!user) return null;
-
-  return (
-    <div className="w-full">
+  return <div className="w-full">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold flex items-center">
-          <MessageSquare className="h-5 w-5 mr-2" />
-          Messages
-          {totalUnreadCount > 0 && (
-            <Badge variant="default" className="ml-2">
-              {totalUnreadCount}
-            </Badge>
-          )}
-        </h2>
+        
       </div>
 
       <Tabs defaultValue="all" className="w-full">
@@ -417,34 +338,21 @@ const Inbox: React.FC = () => {
               
               <ScrollArea className="flex-1">
                 <CardContent className="p-3">
-                  {loading ? (
-                    <div className="text-center py-10">
+                  {loading ? <div className="text-center py-10">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                       <p>Loading conversations...</p>
-                    </div>
-                  ) : conversations.length === 0 ? (
-                    <div className="text-center py-10">
+                    </div> : conversations.length === 0 ? <div className="text-center py-10">
                       <p className="text-muted-foreground">No messages yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {conversations.map((conversation) => (
-                        <div key={conversation.id} className="relative group">
-                          <div 
-                            className={`p-3 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
-                              activeConversation?.id === conversation.id ? 'bg-muted' : ''
-                            }`}
-                            onClick={() => setActiveConversation(conversation)}
-                          >
+                    </div> : <div className="space-y-2">
+                      {conversations.map(conversation => <div key={conversation.id} className="relative group">
+                          <div className={`p-3 rounded-lg cursor-pointer hover:bg-muted transition-colors ${activeConversation?.id === conversation.id ? 'bg-muted' : ''}`} onClick={() => setActiveConversation(conversation)}>
                             <div className="flex justify-between items-start mb-1">
                               <div className="font-medium flex items-center">
                                 <UserRound className="h-4 w-4 mr-1.5" />
                                 {conversation.other_user_name}
-                                {conversation.unread_count > 0 && (
-                                  <Badge variant="default" className="ml-2 px-1.5 py-0 h-5 min-w-5 flex items-center justify-center">
+                                {conversation.unread_count > 0 && <Badge variant="default" className="ml-2 px-1.5 py-0 h-5 min-w-5 flex items-center justify-center">
                                     {conversation.unread_count}
-                                  </Badge>
-                                )}
+                                  </Badge>}
                               </div>
                               <span className="text-xs text-muted-foreground">
                                 {formatMessageTime(conversation.last_message_time)}
@@ -466,11 +374,7 @@ const Inbox: React.FC = () => {
                           {/* Delete button */}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-                              >
+                              <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0">
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </AlertDialogTrigger>
@@ -489,10 +393,8 @@ const Inbox: React.FC = () => {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        </div>)}
+                    </div>}
                 </CardContent>
               </ScrollArea>
             </Card>
@@ -501,8 +403,7 @@ const Inbox: React.FC = () => {
           {/* Message Detail */}
           <div className="md:col-span-2">
             <Card className="h-[600px] flex flex-col">
-              {!activeConversation ? (
-                <div className="flex-1 flex items-center justify-center">
+              {!activeConversation ? <div className="flex-1 flex items-center justify-center">
                   <div className="text-center">
                     <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <h3 className="font-medium">Select a conversation</h3>
@@ -510,9 +411,7 @@ const Inbox: React.FC = () => {
                       Choose a conversation from the list to view messages
                     </p>
                   </div>
-                </div>
-              ) : (
-                <>
+                </div> : <>
                   <CardHeader className="py-3 border-b">
                     <div className="flex justify-between items-center">
                       <div>
@@ -527,67 +426,40 @@ const Inbox: React.FC = () => {
                   
                   <ScrollArea className="flex-1 p-4">
                     <div className="space-y-4">
-                      {messages.map((message) => {
-                        const isCurrentUser = message.sender_id === user.id;
-                        
-                        return (
-                          <div 
-                            key={message.id}
-                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div 
-                              className={`max-w-[80%] rounded-lg p-3 ${
-                                isCurrentUser 
-                                  ? 'bg-primary text-primary-foreground' 
-                                  : 'bg-muted'
-                              }`}
-                            >
+                      {messages.map(message => {
+                    const isCurrentUser = message.sender_id === user.id;
+                    return <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] rounded-lg p-3 ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                               <p>{message.content}</p>
-                              <div 
-                                className={`text-xs mt-1 flex items-center ${
-                                  isCurrentUser ? 'text-primary-foreground/80' : 'text-muted-foreground'
-                                }`}
-                              >
+                              <div className={`text-xs mt-1 flex items-center ${isCurrentUser ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                                 <Clock className="h-3 w-3 mr-1" />
                                 {formatMessageTime(message.created_at)}
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          </div>;
+                  })}
                       <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
                   
                   <div className="p-4 border-t">
                     <div className="flex gap-2">
-                      <Input
-                        placeholder="Type your message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                      />
-                      <Button 
-                        onClick={handleSendMessage}
-                        disabled={!newMessage.trim() || sendingMessage}
-                      >
+                      <Input placeholder="Type your message..." value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }} />
+                      <Button onClick={handleSendMessage} disabled={!newMessage.trim() || sendingMessage}>
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                </>
-              )}
+                </>}
             </Card>
           </div>
         </div>
       </Tabs>
-    </div>
-  );
+    </div>;
 };
-
 export default Inbox;
