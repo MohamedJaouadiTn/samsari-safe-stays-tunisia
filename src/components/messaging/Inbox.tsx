@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +33,8 @@ type Conversation = {
   booking_id?: string;
   check_in_date?: string;
   check_out_date?: string;
+  deleted_by_host?: boolean;
+  deleted_by_guest?: boolean;
 };
 
 type Message = {
@@ -137,6 +138,8 @@ const Inbox: React.FC = () => {
           booking_id,
           created_at,
           updated_at,
+          deleted_by_host,
+          deleted_by_guest,
           properties (
             title
           )
@@ -146,8 +149,16 @@ const Inbox: React.FC = () => {
 
       if (error) throw error;
 
+      // Filter out conversations that the current user has deleted
+      const filteredConversations = conversationsData?.filter(conv => {
+        const isHost = conv.host_id === user.id;
+        if (isHost && conv.deleted_by_host) return false;
+        if (!isHost && conv.deleted_by_guest) return false;
+        return true;
+      }) || [];
+
       // Get profiles for other users
-      const otherUserIds = conversationsData?.map(conv => 
+      const otherUserIds = filteredConversations?.map(conv => 
         conv.host_id === user.id ? conv.guest_id : conv.host_id
       ) || [];
 
@@ -157,7 +168,7 @@ const Inbox: React.FC = () => {
         .in('id', otherUserIds);
 
       // Get last messages and unread counts
-      const conversationIds = conversationsData?.map(conv => conv.id) || [];
+      const conversationIds = filteredConversations?.map(conv => conv.id) || [];
       
       const { data: lastMessages } = await supabase
         .from('messages')
@@ -172,7 +183,7 @@ const Inbox: React.FC = () => {
         .eq('read', false)
         .neq('sender_id', user.id);
 
-      const formattedConversations: Conversation[] = conversationsData?.map(conv => {
+      const formattedConversations: Conversation[] = filteredConversations?.map(conv => {
         const otherUserId = conv.host_id === user.id ? conv.guest_id : conv.host_id;
         const otherUser = profilesData?.find(p => p.id === otherUserId);
         const lastMessage = lastMessages?.find(m => m.conversation_id === conv.id);
@@ -187,7 +198,9 @@ const Inbox: React.FC = () => {
           last_message: lastMessage?.content || 'No messages yet',
           last_message_time: lastMessage?.created_at || conv.created_at,
           unread_count: unreadCount,
-          booking_id: conv.booking_id
+          booking_id: conv.booking_id,
+          deleted_by_host: conv.deleted_by_host,
+          deleted_by_guest: conv.deleted_by_guest
         };
       }) || [];
 
@@ -286,14 +299,48 @@ const Inbox: React.FC = () => {
   };
 
   const deleteConversation = async (conversationId: string) => {
+    if (!user) return;
+
     try {
-      const { error } = await supabase
+      // First, get the conversation to determine user role
+      const { data: conversation, error: fetchError } = await supabase
         .from('conversations')
-        .delete()
+        .select('host_id, guest_id, deleted_by_host, deleted_by_guest')
+        .eq('id', conversationId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const isHost = conversation.host_id === user.id;
+      const updateField = isHost ? 'deleted_by_host' : 'deleted_by_guest';
+      
+      // Mark as deleted by current user
+      const { error: updateError } = await supabase
+        .from('conversations')
+        .update({ [updateField]: true })
         .eq('id', conversationId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
+      // Check if both users have now deleted it
+      const bothDeleted = isHost ? 
+        (true && conversation.deleted_by_guest) : 
+        (conversation.deleted_by_host && true);
+
+      if (bothDeleted) {
+        // If both have deleted, actually delete the conversation and all messages
+        await supabase
+          .from('messages')
+          .delete()
+          .eq('conversation_id', conversationId);
+          
+        await supabase
+          .from('conversations')
+          .delete()
+          .eq('id', conversationId);
+      }
+
+      // Remove from local state
       setConversations(prev => prev.filter(conv => conv.id !== conversationId));
       
       if (activeConversation?.id === conversationId) {
@@ -303,7 +350,7 @@ const Inbox: React.FC = () => {
 
       toast({
         title: "Conversation deleted",
-        description: "The conversation has been removed"
+        description: bothDeleted ? "The conversation has been permanently removed" : "The conversation has been removed from your view"
       });
     } catch (error) {
       console.error('Error deleting conversation:', error);
@@ -430,7 +477,7 @@ const Inbox: React.FC = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete this conversation? This action cannot be undone.
+                                  Are you sure you want to delete this conversation? This will remove it from your view, but the other person will still see it unless they also delete it.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

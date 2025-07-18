@@ -75,62 +75,27 @@ const PropertyBookingCard: React.FC<PropertyBookingCardProps> = ({ property }) =
     setLoading(true);
 
     try {
-      // Create booking request
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          property_id: property.id,
-          host_id: property.host_id,
-          guest_id: user.id,
-          check_in_date: format(checkIn, 'yyyy-MM-dd'),
-          check_out_date: format(checkOut, 'yyyy-MM-dd'),
-          total_price: totalPrice,
-          request_message: message.trim() || null,
-          status: 'pending'
-        })
-        .select()
-        .single();
-
-      if (bookingError) throw bookingError;
-
-      // Create or get conversation
-      const { data: existingConv } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('property_id', property.id)
-        .eq('host_id', property.host_id)
-        .eq('guest_id', user.id)
-        .single();
-
-      if (!existingConv) {
-        await supabase
-          .from('conversations')
-          .insert({
-            property_id: property.id,
-            host_id: property.host_id,
-            guest_id: user.id,
-            booking_id: booking.id
-          });
-      }
-
       // Store booking details in localStorage for booking confirmation page
-      localStorage.setItem('pendingBooking', JSON.stringify({
-        bookingId: booking.id,
+      const bookingDetails = {
         propertyId: property.id,
         checkIn: format(checkIn, 'yyyy-MM-dd'),
         checkOut: format(checkOut, 'yyyy-MM-dd'),
         guests,
+        nights,
         totalPrice,
         message: message.trim()
-      }));
+      };
 
+      localStorage.setItem('bookingDetails', JSON.stringify(bookingDetails));
+
+      // Navigate to booking confirmation page
       navigate(`/booking/${property.id}`);
 
     } catch (error) {
-      console.error('Booking error:', error);
+      console.error('Navigation error:', error);
       toast({
-        title: "Booking failed",
-        description: "There was an error creating your booking request. Please try again.",
+        title: "Error",
+        description: "There was an error. Please try again.",
         variant: "destructive"
       });
     } finally {
