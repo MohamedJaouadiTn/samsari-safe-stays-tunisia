@@ -64,7 +64,14 @@ const Profile = () => {
           console.log("Profile fetch error:", error);
         }
       } else if (data) {
-        setProfile(data);
+        setProfile({
+          full_name: data.full_name || "",
+          phone: data.phone || "",
+          bio: data.bio || "",
+          avatar_url: data.avatar_url || "",
+          is_host: data.is_host || false,
+          verification_status: data.verification_status || "unverified"
+        });
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -80,7 +87,8 @@ const Profile = () => {
         .insert({
           id: user.id,
           full_name: user.user_metadata?.full_name || "",
-          avatar_url: user.user_metadata?.avatar_url || ""
+          avatar_url: user.user_metadata?.avatar_url || "",
+          bio: ""
         })
         .select()
         .single();
@@ -88,7 +96,14 @@ const Profile = () => {
       if (error) {
         console.error("Profile creation error:", error);
       } else if (data) {
-        setProfile(data);
+        setProfile({
+          full_name: data.full_name || "",
+          phone: data.phone || "",
+          bio: data.bio || "",
+          avatar_url: data.avatar_url || "",
+          is_host: data.is_host || false,
+          verification_status: data.verification_status || "unverified"
+        });
       }
     } catch (error) {
       console.error("Error creating profile:", error);
