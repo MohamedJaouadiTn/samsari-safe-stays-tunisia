@@ -135,9 +135,9 @@ const propertyTypes = [
     return (
       <div className="space-y-6">
         <div>
-          <Label htmlFor="propertyType">Property Type *</Label>
-          <Select value={data.propertyType} onValueChange={(value) => onUpdate({ propertyType: value })}>
-            <SelectTrigger className={getSelectClassName('propertyType')}>
+          <Label htmlFor="property_type">Property Type *</Label>
+          <Select value={data.property_type} onValueChange={(value) => onUpdate({ property_type: value })}>
+            <SelectTrigger className={getSelectClassName('property_type')}>
               <SelectValue placeholder="Select property type" />
             </SelectTrigger>
             <SelectContent>
@@ -146,8 +146,8 @@ const propertyTypes = [
               ))}
             </SelectContent>
           </Select>
-          {errors.propertyType && (
-            <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
+          {errors.property_type && (
+            <p className="text-red-500 text-sm mt-1">{errors.property_type}</p>
           )}
         </div>
 

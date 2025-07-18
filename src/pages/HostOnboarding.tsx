@@ -151,7 +151,7 @@ const HostOnboarding = () => {
           newErrors.title = "Property title is required";
         }
         if (!propertyData.property_type) {
-          newErrors.propertyType = "Property type is required";
+          newErrors.property_type = "Property type is required";
         }
         if (!propertyData.governorate) {
           newErrors.governorate = "Governorate is required";
