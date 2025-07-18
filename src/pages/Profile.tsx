@@ -49,6 +49,8 @@ const Profile = () => {
   const fetchProfile = async () => {
     if (!user) return;
     
+    console.log("Fetching profile for user:", user.id);
+    
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -57,12 +59,20 @@ const Profile = () => {
         .single();
         
       if (error) {
+        console.log("Profile fetch error:", error);
         if (error.code === 'PGRST116') {
+          console.log("Profile not found, creating new profile");
           await createProfile();
         } else {
-          console.log("Profile fetch error:", error);
+          console.error("Profile fetch error:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch profile",
+            variant: "destructive"
+          });
         }
       } else if (data) {
+        console.log("Profile data fetched:", data);
         setProfile({
           full_name: data.full_name || "",
           phone: data.phone || "",
@@ -74,11 +84,18 @@ const Profile = () => {
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch profile",
+        variant: "destructive"
+      });
     }
   };
 
   const createProfile = async () => {
     if (!user) return;
+    
+    console.log("Creating profile for user:", user.id);
     
     try {
       const { data, error } = await supabase
@@ -95,7 +112,13 @@ const Profile = () => {
         
       if (error) {
         console.error("Profile creation error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to create profile",
+          variant: "destructive"
+        });
       } else if (data) {
+        console.log("Profile created:", data);
         setProfile({
           full_name: data.full_name || "",
           phone: data.phone || "",
@@ -107,6 +130,11 @@ const Profile = () => {
       }
     } catch (error) {
       console.error("Error creating profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create profile",
+        variant: "destructive"
+      });
     }
   };
 
@@ -164,8 +192,15 @@ const Profile = () => {
     if (!user) return;
     setLoading(true);
     
+    console.log("Updating profile for user:", user.id);
+    console.log("Profile data to update:", {
+      full_name: profile.full_name,
+      phone: profile.phone,
+      bio: profile.bio
+    });
+    
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .update({
           full_name: profile.full_name,
@@ -173,16 +208,19 @@ const Profile = () => {
           bio: profile.bio,
           updated_at: new Date().toISOString()
         })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .select()
+        .single();
         
       if (error) {
         console.error("Profile update error:", error);
         toast({
           title: "Error",
-          description: "Failed to update profile",
+          description: `Failed to update profile: ${error.message}`,
           variant: "destructive"
         });
       } else {
+        console.log("Profile updated successfully:", data);
         toast({
           title: "Success",
           description: "Profile updated successfully"
