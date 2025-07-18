@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Edit, Trash2, Plus, BarChart3, Calendar, ExternalLink } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -27,30 +28,44 @@ const MyProperties: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [propertyStats, setPropertyStats] = useState<Record<string, { views: number, bookings: number }>>({});
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchProperties();
-  }, []);
+    if (user) {
+      fetchProperties();
+    }
+  }, [user]);
 
   const fetchProperties = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
+      console.log('Fetching properties for user:', user.id);
+      
+      // Fetch properties where the current user is the host
       const { data: propertyData, error } = await supabase
         .from('properties')
         .select('*')
+        .eq('host_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching properties:', error);
+        throw error;
+      }
+      
+      console.log('Fetched properties:', propertyData);
       setProperties(propertyData || []);
 
       // Fetch stats for each property
-      if (propertyData) {
+      if (propertyData && propertyData.length > 0) {
         await fetchPropertyStats(propertyData);
       }
     } catch (error) {
-      console.error('Error fetching properties:', error);
+      console.error('Error fetching properties:',error);
       toast({
         title: "Error",
         description: "Failed to load your properties",
@@ -160,7 +175,6 @@ const MyProperties: React.FC = () => {
   };
 
   const editProperty = (propertyId: string) => {
-    // Navigate to edit page (to be implemented)
     navigate(`/host/edit-property/${propertyId}`);
   };
 

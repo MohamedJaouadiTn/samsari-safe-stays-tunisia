@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -188,10 +187,10 @@ const Profile = () => {
           </div>
 
           <Tabs defaultValue={defaultTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
-              <TabsTrigger value="properties">Properties</TabsTrigger>
+              <TabsTrigger value="properties">My Properties</TabsTrigger>
               <TabsTrigger value="saved">Saved</TabsTrigger>
               <TabsTrigger value="inbox">Inbox</TabsTrigger>
               <TabsTrigger value="requests">Requests</TabsTrigger>
@@ -257,29 +256,16 @@ const Profile = () => {
 
             <TabsContent value="properties">
               <div className="space-y-6">
-                {/* Host Status Section */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Home className="h-5 w-5" />
-                      <span>Hosting Status</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {profile.is_host ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                          <Shield className="h-5 w-5 text-green-600" />
-                          <span className="text-green-600 font-medium">You are a verified host</span>
-                        </div>
-                        <p className="text-muted-foreground">
-                          You can create and manage property listings below.
-                        </p>
-                        <Button onClick={() => navigate("/host/onboarding")}>
-                          Create New Listing
-                        </Button>
-                      </div>
-                    ) : (
+                {/* Show hosting status if not a host */}
+                {!profile.is_host && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Home className="h-5 w-5" />
+                        <span>Become a Host</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
                       <div className="space-y-4">
                         <p className="text-muted-foreground">
                           Become a host and start earning by renting out your property.
@@ -288,11 +274,11 @@ const Profile = () => {
                           {loading ? "Processing..." : "Become a Host"}
                         </Button>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
 
-                {/* Properties Management Section */}
+                {/* Always show MyProperties component - it handles both host and non-host states */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -301,18 +287,7 @@ const Profile = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {profile.is_host ? (
-                      <MyProperties />
-                    ) : (
-                      <div className="text-center py-6">
-                        <p className="text-muted-foreground mb-4">
-                          You need to become a host to create and manage properties.
-                        </p>
-                        <Button onClick={becomeHost} disabled={loading}>
-                          {loading ? "Processing..." : "Become a Host"}
-                        </Button>
-                      </div>
-                    )}
+                    <MyProperties />
                   </CardContent>
                 </Card>
               </div>
