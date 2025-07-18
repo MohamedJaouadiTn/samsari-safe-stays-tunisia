@@ -1,38 +1,20 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, Menu, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Shield, Menu, X, MessageSquare } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import LanguageSelector from "./LanguageSelector";
 import ProfileDropdown from "./ProfileDropdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [profile, setProfile] = useState({ full_name: "", avatar_url: "" });
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    if (!user) return;
-    
-    const { data } = await supabase
-      .from("profiles")
-      .select("full_name, avatar_url")
-      .eq("id", user.id)
-      .single();
-
-    if (data) {
-      setProfile(data);
-    }
-  };
+  const unreadCount = useUnreadMessages();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -67,6 +49,21 @@ const Header = () => {
           {/* Right side buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <LanguageSelector />
+            {user && (
+              <Link to="/profile?tab=inbox" className="relative">
+                <Button variant="ghost" size="icon">
+                  <MessageSquare className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0 min-w-5"
+                    >
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+            )}
             {user ? (
               <ProfileDropdown />
             ) : (
@@ -120,6 +117,25 @@ const Header = () => {
               </Link>
               <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
                 <LanguageSelector />
+                {user && (
+                  <Link 
+                    to="/profile?tab=inbox" 
+                    className="relative"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Button variant="ghost" size="icon">
+                      <MessageSquare className="h-5 w-5" />
+                      {unreadCount > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0 min-w-5"
+                        >
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+                )}
                 {user ? (
                   <ProfileDropdown />
                 ) : (

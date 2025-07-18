@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -54,6 +54,15 @@ const Inbox: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (user) {
@@ -74,16 +83,27 @@ const Inbox: React.FC = () => {
           schema: 'public',
           table: 'messages'
         }, (payload) => {
+          console.log('Message event:', payload);
           if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as Message;
             // If it's a new message in the active conversation, add it to messages
-            if (activeConversation && payload.new.conversation_id === activeConversation.id) {
-              setMessages(prev => [...prev, payload.new as Message]);
+            if (activeConversation && newMessage.conversation_id === activeConversation.id) {
+              setMessages(prev => [...prev, newMessage]);
             }
             // Refresh conversations to update last message and unread count
             fetchConversations();
           }
           if (payload.eventType === 'UPDATE') {
-            // If message was marked as read, refresh conversations
+            const updatedMessage = payload.new as Message;
+            // If message was marked as read, update local state
+            if (activeConversation && updatedMessage.conversation_id === activeConversation.id) {
+              setMessages(prev => 
+                prev.map(msg => 
+                  msg.id === updatedMessage.id ? updatedMessage : msg
+                )
+              );
+            }
+            // Refresh conversations to update unread count
             fetchConversations();
           }
         })
@@ -116,6 +136,7 @@ const Inbox: React.FC = () => {
           guest_id,
           booking_id,
           created_at,
+          updated_at,
           properties (
             title
           )
@@ -125,7 +146,7 @@ const Inbox: React.FC = () => {
 
       if (error) throw error;
 
-      // Get profiles for other users using the profiles table, not auth.users
+      // Get profiles for other users
       const otherUserIds = conversationsData?.map(conv => 
         conv.host_id === user.id ? conv.guest_id : conv.host_id
       ) || [];
@@ -202,11 +223,14 @@ const Inbox: React.FC = () => {
     if (!user) return;
     
     try {
-      await supabase
+      const { error } = await supabase
         .from('messages')
         .update({ read: true })
         .eq('conversation_id', conversationId)
+        .eq('read', false)
         .neq('sender_id', user.id);
+
+      if (error) throw error;
 
       // Update unread count in local state
       setConversations(prev => 
@@ -239,7 +263,7 @@ const Inbox: React.FC = () => {
 
       if (error) throw error;
 
-      // Update conversation's last message
+      // Update conversation's last message time
       await supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
@@ -247,7 +271,8 @@ const Inbox: React.FC = () => {
       
       setNewMessage('');
       
-      // The real-time subscription will handle adding the message to the UI
+      // Add message to local state immediately for better UX
+      setMessages(prev => [...prev, data]);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -482,6 +507,7 @@ const Inbox: React.FC = () => {
                           </div>
                         );
                       })}
+                      <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
                   
