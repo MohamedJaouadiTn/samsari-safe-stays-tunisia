@@ -57,7 +57,7 @@ const ProfileDropdown = ({ profile, userEmail }: ProfileDropdownProps) => {
         
         canvas.toBlob((blob) => {
           if (blob) {
-            const compressedFile = new File([blob], file.name, {
+            const compress File = new File([blob], file.name, {
               type: 'image/jpeg',
               lastModified: Date.now(),
             });
@@ -104,7 +104,7 @@ const ProfileDropdown = ({ profile, userEmail }: ProfileDropdownProps) => {
 
       const avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
 
-      // Update profile in profiles table (not auth.users)
+      // Update profile in profiles table
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: avatarUrl })

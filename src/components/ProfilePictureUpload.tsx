@@ -87,7 +87,7 @@ const ProfilePictureUpload = ({
 
       const avatarUrl = `${data.publicUrl}?t=${Date.now()}`; // Add timestamp to prevent caching
 
-      // Update profile in profiles table (not auth.users)
+      // Update profile in profiles table
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: avatarUrl })
