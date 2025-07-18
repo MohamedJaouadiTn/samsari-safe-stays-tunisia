@@ -32,7 +32,7 @@ const PropertyReview = ({ data }: PropertyReviewProps) => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{data.title || "Property Title"}</span>
-            <Badge variant="secondary">{data.propertyType}</Badge>
+            <Badge variant="secondary">{data.property_type}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -40,7 +40,7 @@ const PropertyReview = ({ data }: PropertyReviewProps) => {
             <div>
               <div className="flex items-center text-muted-foreground mb-2">
                 <MapPin className="h-4 w-4 mr-2" />
-                <span>{data.city}, Tunisia</span>
+                <span>{data.city}, {data.governorate}</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
                 {data.description || "No description provided"}
@@ -48,7 +48,7 @@ const PropertyReview = ({ data }: PropertyReviewProps) => {
               <div className="flex items-center space-x-4 text-sm">
                 <div className="flex items-center">
                   <Users className="h-4 w-4 mr-1" />
-                  <span>{data.guests || 1} guests</span>
+                  <span>{data.max_guests || 1} guests</span>
                 </div>
                 <div className="flex items-center">
                   <Bed className="h-4 w-4 mr-1" />
@@ -64,7 +64,7 @@ const PropertyReview = ({ data }: PropertyReviewProps) => {
               <div className="flex items-center mb-4">
                 <DollarSign className="h-4 w-4 mr-2" />
                 <span className="text-2xl font-bold">
-                  {selectedCurrency?.symbol}{data.basePrice || "0"}
+                  {selectedCurrency?.symbol}{data.price_per_night || "0"}
                 </span>
                 <span className="text-muted-foreground ml-1">per night</span>
               </div>
@@ -127,7 +127,7 @@ const PropertyReview = ({ data }: PropertyReviewProps) => {
         <CardContent>
           <p className="text-muted-foreground">
             {data.address || "Address not provided"}<br />
-            {data.city}, Tunisia
+            {data.city}, {data.governorate}
           </p>
         </CardContent>
       </Card>

@@ -284,6 +284,7 @@ export type Database = {
           city: string
           coordinates: Json | null
           created_at: string
+          currency: string | null
           description: string | null
           extra_beds: number | null
           google_maps_url: string | null
@@ -318,6 +319,7 @@ export type Database = {
           city: string
           coordinates?: Json | null
           created_at?: string
+          currency?: string | null
           description?: string | null
           extra_beds?: number | null
           google_maps_url?: string | null
@@ -352,6 +354,7 @@ export type Database = {
           city?: string
           coordinates?: Json | null
           created_at?: string
+          currency?: string | null
           description?: string | null
           extra_beds?: number | null
           google_maps_url?: string | null

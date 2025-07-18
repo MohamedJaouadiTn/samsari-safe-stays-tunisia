@@ -217,7 +217,6 @@ const HostOnboarding = () => {
 
     setLoading(true);
     try {
-      // Create a clean payload without any undefined latitude/longitude fields
       const propertyPayload = {
         title: propertyData.title,
         description: propertyData.description,
