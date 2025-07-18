@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Calculator, DollarSign, TrendingUp } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,13 +17,17 @@ interface PropertyPricingProps {
 
 const PropertyPricing = ({ data, onUpdate, errors }: PropertyPricingProps) => {
   const [basePrice, setBasePrice] = useState(data.price_per_night || 0);
+  const [currency, setCurrency] = useState(data.currency || "TND");
 
   // Sync with data when it changes
   useEffect(() => {
     if (data.price_per_night !== basePrice) {
       setBasePrice(data.price_per_night || 0);
     }
-  }, [data.price_per_night]);
+    if (data.currency !== currency) {
+      setCurrency(data.currency || "TND");
+    }
+  }, [data.price_per_night, data.currency]);
 
   const handlePriceChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
@@ -30,13 +35,24 @@ const PropertyPricing = ({ data, onUpdate, errors }: PropertyPricingProps) => {
     onUpdate({ price_per_night: numValue });
   };
 
+  const handleCurrencyChange = (value: string) => {
+    setCurrency(value);
+    onUpdate({ currency: value });
+  };
+
   const serviceFeeRate = 0.04; // 4% (3% service + 1% transaction fees)
   const serviceFee = basePrice * serviceFeeRate;
   const totalEarnings = basePrice - serviceFee;
 
   const formatCurrency = (amount: number) => {
-    return `${amount.toFixed(2)} TND`;
+    return `${amount.toFixed(2)} ${currency}`;
   };
+
+  const currencies = [
+    { value: "TND", label: "TND (Tunisian Dinar)" },
+    { value: "USD", label: "USD (US Dollar)" },
+    { value: "EUR", label: "EUR (Euro)" }
+  ];
 
   return (
     <div className="space-y-6">
@@ -50,6 +66,22 @@ const PropertyPricing = ({ data, onUpdate, errors }: PropertyPricingProps) => {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <div>
+              <Label htmlFor="currency">Currency *</Label>
+              <Select value={currency} onValueChange={handleCurrencyChange}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((curr) => (
+                    <SelectItem key={curr.value} value={curr.value}>
+                      {curr.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="base_price">Base Price per Night *</Label>
               <div className="relative mt-2">
                 <Input
@@ -60,10 +92,10 @@ const PropertyPricing = ({ data, onUpdate, errors }: PropertyPricingProps) => {
                   value={basePrice || ""}
                   onChange={(e) => handlePriceChange(e.target.value)}
                   placeholder="Enter price"
-                  className={`pr-12 ${errors?.price_per_night ? 'border-red-500' : ''}`}
+                  className={`pr-16 ${errors?.price_per_night ? 'border-red-500' : ''}`}
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                  TND
+                  {currency}
                 </span>
               </div>
               {errors?.price_per_night && (
@@ -115,7 +147,7 @@ const PropertyPricing = ({ data, onUpdate, errors }: PropertyPricingProps) => {
             <ul className="text-sm space-y-1">
               <li>• No listing fees - your property goes live immediately</li>
               <li>• Only pay when you earn</li>
-              <li>• Optional paid promotion available (20 TND/day)</li>
+              <li>• Optional paid promotion available (20 {currency}/day)</li>
               <li>• ID verification required for all users</li>
             </ul>
           </div>

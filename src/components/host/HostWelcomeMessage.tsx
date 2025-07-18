@@ -12,6 +12,10 @@ interface HostWelcomeMessageProps {
 const HostWelcomeMessage = ({ data, onUpdate }: HostWelcomeMessageProps) => {
   const defaultMessage = `Welcome to ${data.city || 'our beautiful location'} where the past & future mix & mingle! A traveler myself, I love interacting and I'd be happy to host & guide you through some local stuff! Let me know if you have any questions.`;
 
+  const handleMessageChange = (value: string) => {
+    onUpdate({ welcome_message: value });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -25,8 +29,8 @@ const HostWelcomeMessage = ({ data, onUpdate }: HostWelcomeMessageProps) => {
           <Label htmlFor="welcome-message">Your Welcome Message</Label>
           <Textarea
             id="welcome-message"
-            value={data.welcome_message || defaultMessage}
-            onChange={(e) => onUpdate({ welcome_message: e.target.value })}
+            value={data.welcome_message || ""}
+            onChange={(e) => handleMessageChange(e.target.value)}
             placeholder={defaultMessage}
             rows={4}
             className="resize-none"

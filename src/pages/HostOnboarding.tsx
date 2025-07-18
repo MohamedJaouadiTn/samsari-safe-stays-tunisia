@@ -15,6 +15,7 @@ import PropertyPhotos from "@/components/host/PropertyPhotos";
 import PropertyPricing from "@/components/host/PropertyPricing";
 import PropertyReview from "@/components/host/PropertyReview";
 import SafetyFeaturesForm from "@/components/host/SafetyFeaturesForm";
+import HostWelcomeMessage from "@/components/host/HostWelcomeMessage";
 
 const HostOnboarding = () => {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ const HostOnboarding = () => {
     bathrooms: 1,
     max_guests: 4,
     price_per_night: 0,
+    currency: "TND",
     amenities: [],
     photos: [],
     safety_features: [],
@@ -50,7 +52,8 @@ const HostOnboarding = () => {
     check_out_time: "12:00",
     house_rules: "",
     coordinates: null,
-    google_maps_url: ""
+    google_maps_url: "",
+    welcome_message: ""
   });
 
   useEffect(() => {
@@ -92,6 +95,7 @@ const HostOnboarding = () => {
           bathrooms: data.bathrooms || 1,
           max_guests: data.max_guests || 4,
           price_per_night: data.price_per_night || 0,
+          currency: data.currency || "TND",
           amenities: Array.isArray(data.amenities) ? data.amenities : [],
           photos: Array.isArray(data.photos) ? data.photos : [],
           safety_features: Array.isArray(data.safety_features) ? data.safety_features : [],
@@ -104,7 +108,8 @@ const HostOnboarding = () => {
           check_out_time: data.check_out_time || "12:00",
           house_rules: data.house_rules || "",
           coordinates: data.coordinates || null,
-          google_maps_url: data.google_maps_url || ""
+          google_maps_url: data.google_maps_url || "",
+          welcome_message: data.welcome_message || ""
         });
       }
     } catch (error: any) {
@@ -126,7 +131,8 @@ const HostOnboarding = () => {
     { number: 3, title: "Photos", component: PropertyPhotos },
     { number: 4, title: "Safety Features", component: SafetyFeaturesForm },
     { number: 5, title: "Pricing", component: PropertyPricing },
-    { number: 6, title: "Review & Publish", component: PropertyReview }
+    { number: 6, title: "Welcome Message", component: HostWelcomeMessage },
+    { number: 7, title: "Review & Publish", component: PropertyReview }
   ];
 
   const updatePropertyData = (updates: any) => {
@@ -211,8 +217,33 @@ const HostOnboarding = () => {
 
     setLoading(true);
     try {
+      // Create a clean payload without any undefined latitude/longitude fields
       const propertyPayload = {
-        ...propertyData,
+        title: propertyData.title,
+        description: propertyData.description,
+        property_type: propertyData.property_type,
+        governorate: propertyData.governorate,
+        city: propertyData.city,
+        address: propertyData.address,
+        bedrooms: propertyData.bedrooms,
+        bathrooms: propertyData.bathrooms,
+        max_guests: propertyData.max_guests,
+        price_per_night: propertyData.price_per_night,
+        currency: propertyData.currency,
+        amenities: propertyData.amenities,
+        photos: propertyData.photos,
+        safety_features: propertyData.safety_features,
+        sleeping_arrangements: propertyData.sleeping_arrangements,
+        bed_types: propertyData.bed_types,
+        extra_beds: propertyData.extra_beds,
+        minimum_stay: propertyData.minimum_stay,
+        cancellation_policy: propertyData.cancellation_policy,
+        check_in_time: propertyData.check_in_time,
+        check_out_time: propertyData.check_out_time,
+        house_rules: propertyData.house_rules,
+        coordinates: propertyData.coordinates,
+        google_maps_url: propertyData.google_maps_url,
+        welcome_message: propertyData.welcome_message,
         host_id: user!.id,
         is_public: true,
         status: 'published',
