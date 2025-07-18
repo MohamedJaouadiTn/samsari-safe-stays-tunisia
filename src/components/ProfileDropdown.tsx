@@ -52,7 +52,6 @@ const ProfileDropdown = () => {
       
       if (error) {
         console.error('Profile fetch error:', error);
-        // Create profile if it doesn't exist
         if (error.code === 'PGRST116') {
           await createProfile();
         }

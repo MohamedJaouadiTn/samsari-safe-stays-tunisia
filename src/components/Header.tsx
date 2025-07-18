@@ -2,21 +2,19 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Menu, X, MessageSquare, Bell } from "lucide-react";
+import { Shield, Menu, X, MessageSquare } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import LanguageSelector from "./LanguageSelector";
 import ProfileDropdown from "./ProfileDropdown";
+import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
-import { useNotifications } from "@/hooks/useNotifications";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const unreadCount = useUnreadMessages();
-  const notificationCount = useNotifications();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -66,19 +64,7 @@ const Header = () => {
                     )}
                   </Button>
                 </Link>
-                <Link to="/profile?tab=requests" className="relative">
-                  <Button variant="ghost" size="icon">
-                    <Bell className="h-5 w-5" />
-                    {notificationCount > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0 min-w-5"
-                      >
-                        {notificationCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </Link>
+                <NotificationDropdown />
               </>
             )}
             {user ? (
@@ -153,23 +139,7 @@ const Header = () => {
                         )}
                       </Button>
                     </Link>
-                    <Link 
-                      to="/profile?tab=requests" 
-                      className="relative"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <Bell className="h-5 w-5" />
-                        {notificationCount > 0 && (
-                          <Badge 
-                            variant="destructive" 
-                            className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0 min-w-5"
-                          >
-                            {notificationCount}
-                          </Badge>
-                        )}
-                      </Button>
-                    </Link>
+                    <NotificationDropdown />
                   </>
                 )}
                 {user ? (

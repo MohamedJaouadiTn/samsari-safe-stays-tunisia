@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Camera, Info, Shield, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Upload, Camera, Info, Shield, Clock, CheckCircle, XCircle, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface IdVerificationProps {
   verificationStatus: string | null;
@@ -17,6 +18,7 @@ interface IdVerificationProps {
 const IdVerification = ({ verificationStatus, onVerificationSubmitted }: IdVerificationProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState({
     cinFront: null as File | null,
@@ -210,10 +212,14 @@ const IdVerification = ({ verificationStatus, onVerificationSubmitted }: IdVerif
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2 text-green-600">
+          <div className="flex items-center space-x-2 text-green-600 mb-4">
             <CheckCircle className="h-5 w-5" />
             <span>Your identity has been verified successfully!</span>
           </div>
+          <Button onClick={() => navigate("/")} className="w-full">
+            <Home className="mr-2 h-4 w-4" />
+            Go to Main Page
+          </Button>
         </CardContent>
       </Card>
     );
@@ -234,7 +240,21 @@ const IdVerification = ({ verificationStatus, onVerificationSubmitted }: IdVerif
         <div className="flex items-start space-x-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">🛡️ Privacy Information</p>
+            <p className="font-medium mb-1">🛡️ Build Trust & Get More Bookings</p>
+            <p>Identity verification helps build trust in our community:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li><strong>For Hosts:</strong> Verified identity means more trusted listings and higher guest booking rates</li>
+              <li><strong>For Guests:</strong> Verified identity gives you a higher rate of reservation approval from hosts</li>
+              <li><strong>For Everyone:</strong> A safer, more trusted community experience</li>
+            </ul>
+            <p className="mt-2 font-medium">The more trusted you are, the more successful you'll be on Samsari!</p>
+          </div>
+        </div>
+
+        <div className="flex items-start space-x-2 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <Info className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-gray-700">
+            <p className="font-medium mb-1">🔒 Privacy Information</p>
             <p>According to Law 2004‑63 of 27 July 2004, personal data (like CIN) must be:</p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Collected only for explicit, legitimate purpose (identity verification)</li>
@@ -284,12 +304,16 @@ const IdVerification = ({ verificationStatus, onVerificationSubmitted }: IdVerif
         )}
 
         {verificationStatus === 'pending' && (
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-4">
             <Clock className="h-12 w-12 mx-auto text-yellow-500" />
             <p className="font-medium">Verification in Progress</p>
             <p className="text-sm text-gray-600">
               Your documents are being reviewed. You'll be notified within 24 hours.
             </p>
+            <Button onClick={() => navigate("/")} variant="outline" className="w-full">
+              <Home className="mr-2 h-4 w-4" />
+              Go to Main Page
+            </Button>
           </div>
         )}
       </CardContent>

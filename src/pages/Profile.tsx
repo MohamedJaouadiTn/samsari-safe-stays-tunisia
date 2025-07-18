@@ -23,7 +23,7 @@ const Profile = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [savedProperties, setSavedProperties] = useState([]);
   const [profile, setProfile] = useState({
@@ -58,7 +58,6 @@ const Profile = () => {
         
       if (error) {
         if (error.code === 'PGRST116') {
-          // Profile doesn't exist, create it
           await createProfile();
         } else {
           console.log("Profile fetch error:", error);
@@ -88,7 +87,8 @@ const Profile = () => {
           id: user.id,
           full_name: user.user_metadata?.full_name || "",
           avatar_url: user.user_metadata?.avatar_url || "",
-          bio: ""
+          bio: "",
+          phone: ""
         })
         .select()
         .single();
@@ -163,28 +163,45 @@ const Profile = () => {
   const updateProfile = async () => {
     if (!user) return;
     setLoading(true);
-    const { error } = await supabase
-      .from("profiles")
-      .upsert({
-        id: user.id,
-        full_name: profile.full_name,
-        phone: profile.phone,
-        bio: profile.bio,
-        avatar_url: profile.avatar_url,
-        updated_at: new Date().toISOString()
-      });
-    if (error) {
+    
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: profile.full_name,
+          phone: profile.phone,
+          bio: profile.bio,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", user.id);
+        
+      if (error) {
+        console.error("Profile update error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update profile",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Profile updated successfully"
+        });
+        
+        // Redirect to verification tab if not verified
+        if (profile.verification_status === "unverified") {
+          setSearchParams({ tab: 'verification' });
+        }
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
       toast({
         title: "Error",
         description: "Failed to update profile",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Profile updated successfully"
-      });
     }
+    
     setLoading(false);
   };
 
@@ -239,7 +256,7 @@ const Profile = () => {
             </Button>
           </div>
 
-          <Tabs defaultValue={defaultTab} className="space-y-6">
+          <Tabs value={defaultTab} onValueChange={(value) => setSearchParams({ tab: value })} className="space-y-6">
             <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
