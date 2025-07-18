@@ -68,7 +68,7 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-4">
             <LanguageSelector />
             {user ? (
-              <ProfileDropdown profile={profile} userEmail={user.email || ""} />
+              <ProfileDropdown />
             ) : (
               <Button onClick={() => navigate("/auth")}>
                 Sign In
@@ -121,7 +121,7 @@ const Header = () => {
               <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
                 <LanguageSelector />
                 {user ? (
-                  <ProfileDropdown profile={profile} userEmail={user.email || ""} />
+                  <ProfileDropdown />
                 ) : (
                   <Button 
                     onClick={() => {
