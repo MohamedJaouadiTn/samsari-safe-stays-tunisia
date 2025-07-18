@@ -28,7 +28,9 @@ const BookingConfirmation = () => {
     checkOut: "",
     guests: 1,
     nights: 0,
-    totalPrice: 0
+    totalPrice: 0,
+    pricePerNight: 0,
+    message: ""
   });
 
   useEffect(() => {
@@ -72,6 +74,27 @@ const BookingConfirmation = () => {
     if (stored) {
       const details = JSON.parse(stored);
       setBookingDetails(details);
+      
+      // Set the guest message from the stored booking details
+      if (details.message) {
+        setGuestMessage(details.message);
+      }
+    }
+  };
+
+  const sendMessageToHost = async (conversationId: string, messageContent: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: user!.id,
+          content: messageContent
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
 
@@ -104,6 +127,49 @@ const BookingConfirmation = () => {
         .insert([bookingData]);
 
       if (error) throw error;
+
+      // Create or get conversation with host
+      let conversationId: string;
+      
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('property_id', property.id)
+        .eq('host_id', property.host_id)
+        .eq('guest_id', user.id)
+        .single();
+
+      if (existingConv) {
+        conversationId = existingConv.id;
+      } else {
+        const { data: newConv, error: convError } = await supabase
+          .from('conversations')
+          .insert({
+            property_id: property.id,
+            host_id: property.host_id,
+            guest_id: user.id
+          })
+          .select('id')
+          .single();
+
+        if (convError) throw convError;
+        conversationId = newConv.id;
+      }
+
+      // Send message to host with booking details and guest message
+      let messageContent = `New booking request!\n\n`;
+      
+      if (guestMessage.trim()) {
+        messageContent += `Guest message: ${guestMessage.trim()}\n\n`;
+      }
+      
+      messageContent += `Phone number: ${phoneNumber}\n`;
+      messageContent += `Reservation dates: ${new Date(bookingDetails.checkIn).toLocaleDateString()} to ${new Date(bookingDetails.checkOut).toLocaleDateString()}\n`;
+      messageContent += `Guests: ${bookingDetails.guests}\n`;
+      messageContent += `Nights: ${bookingDetails.nights}\n`;
+      messageContent += `Total price: ${bookingDetails.totalPrice} TND`;
+
+      await sendMessageToHost(conversationId, messageContent);
 
       localStorage.removeItem('bookingDetails');
 

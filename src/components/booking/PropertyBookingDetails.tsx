@@ -13,6 +13,7 @@ interface BookingDetails {
   guests: number;
   nights: number;
   totalPrice: number;
+  pricePerNight?: number;
 }
 
 interface PropertyBookingDetailsProps {
@@ -21,6 +22,9 @@ interface PropertyBookingDetailsProps {
 }
 
 const PropertyBookingDetails = ({ property, bookingDetails }: PropertyBookingDetailsProps) => {
+  // Use pricePerNight from booking details if available, otherwise fall back to property price
+  const pricePerNight = bookingDetails.pricePerNight || property.price_per_night;
+  
   return (
     <div className="space-y-6">
       <Card>
@@ -72,7 +76,7 @@ const PropertyBookingDetails = ({ property, bookingDetails }: PropertyBookingDet
         <CardContent>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span>TND {property.price_per_night} × {bookingDetails.nights} nights</span>
+              <span>TND {pricePerNight} × {bookingDetails.nights} nights</span>
               <span>TND {bookingDetails.totalPrice}</span>
             </div>
             

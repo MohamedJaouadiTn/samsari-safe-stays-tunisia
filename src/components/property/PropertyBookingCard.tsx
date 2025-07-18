@@ -83,7 +83,8 @@ const PropertyBookingCard: React.FC<PropertyBookingCardProps> = ({ property }) =
         guests,
         nights,
         totalPrice,
-        message: message.trim()
+        message: message.trim(),
+        pricePerNight: property.price_per_night
       };
 
       localStorage.setItem('bookingDetails', JSON.stringify(bookingDetails));
