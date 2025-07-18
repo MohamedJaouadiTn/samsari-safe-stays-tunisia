@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,6 +86,14 @@ const BookingConfirmation = () => {
       usd: (depositTND * 0.34).toFixed(2),
       eur: (depositTND * 0.293).toFixed(2)
     };
+  };
+
+  const getHostWelcomeMessage = () => {
+    if (property?.welcome_message) {
+      return property.welcome_message;
+    }
+    
+    return `Welcome to ${property?.city || 'our beautiful location'} where the past & future mix & mingle! A traveler myself, I love interacting and I'd be happy to host & guide you through some local stuff! Let me know if you have any questions.`;
   };
 
   const handleSubmitBooking = async () => {
@@ -183,10 +190,8 @@ const BookingConfirmation = () => {
               </CardHeader>
               <CardContent>
                 <div className="bg-muted p-4 rounded-lg mb-4">
-                  <p className="text-sm">
-                    "Welcome to {property.city} where the past & future mix & mingle! A traveler myself, 
-                    I love interacting and I'd be happy to host & guide you through some local stuff! 
-                    Let me know if you have any questions."
+                  <p className="text-sm whitespace-pre-line">
+                    {getHostWelcomeMessage()}
                   </p>
                 </div>
                 

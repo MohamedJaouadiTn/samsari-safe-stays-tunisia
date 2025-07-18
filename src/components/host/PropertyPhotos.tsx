@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, X, Image, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PropertyPhotosProps {
   data: any;
@@ -12,6 +14,8 @@ interface PropertyPhotosProps {
 
 const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
   const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
 
   const requiredPhotoTypes = [
     { id: 'exterior', label: 'House Exterior', required: true },
@@ -40,17 +44,110 @@ const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
     }
   };
 
-  const handleFiles = (files: FileList, photoType?: string) => {
-    const newPhotos = Array.from(files).map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name,
-      type: photoType || 'general'
-    }));
+  const uploadToSupabase = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `property-photos/${fileName}`;
 
-    const currentPhotos = data.photos || [];
-    const updatedPhotos = [...currentPhotos, ...newPhotos];
-    onUpdate({ photos: updatedPhotos });
+      console.log('Uploading file to:', filePath);
+
+      const { data, error } = await supabase.storage
+        .from('property-photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      console.log('Upload successful:', data);
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('property-photos')
+        .getPublicUrl(filePath);
+
+      console.log('Public URL:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading to Supabase:', error);
+      return null;
+    }
+  };
+
+  const handleFiles = async (files: FileList, photoType?: string) => {
+    setUploading(true);
+    const newPhotos = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Invalid file type",
+            description: `${file.name} is not an image file`,
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        // Validate file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: `${file.name} is larger than 10MB`,
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        console.log('Processing file:', file.name, 'Type:', photoType);
+
+        // Upload to Supabase
+        const uploadedUrl = await uploadToSupabase(file);
+        
+        if (uploadedUrl) {
+          newPhotos.push({
+            url: uploadedUrl,
+            preview: URL.createObjectURL(file),
+            name: file.name,
+            type: photoType || 'general'
+          });
+        } else {
+          toast({
+            title: "Upload failed",
+            description: `Failed to upload ${file.name}`,
+            variant: "destructive"
+          });
+        }
+      }
+
+      if (newPhotos.length > 0) {
+        const currentPhotos = data.photos || [];
+        const updatedPhotos = [...currentPhotos, ...newPhotos];
+        onUpdate({ photos: updatedPhotos });
+        
+        toast({
+          title: "Photos uploaded",
+          description: `Successfully uploaded ${newPhotos.length} photo(s)`
+        });
+      }
+    } catch (error) {
+      console.error('Error handling files:', error);
+      toast({
+        title: "Upload error",
+        description: "Failed to upload photos",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removePhoto = (index: number) => {
@@ -97,6 +194,15 @@ const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
             </AlertDescription>
           </Alert>
         )}
+
+        {uploading && (
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Uploading photos... Please wait.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* Required Room Photos */}
@@ -117,7 +223,7 @@ const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
                   {getPhotosByType(photoType.id).map((photo: any, index: number) => (
                     <div key={index} className="relative group">
                       <img
-                        src={photo.preview}
+                        src={photo.preview || photo.url}
                         alt={photoType.label}
                         className="w-full h-20 object-cover rounded"
                       />
@@ -183,7 +289,7 @@ const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
                     {bedroomPhotosForRoom.length > 0 ? (
                       <div className="relative group">
                         <img
-                          src={bedroomPhotosForRoom[0].preview}
+                          src={bedroomPhotosForRoom[0].preview || bedroomPhotosForRoom[0].url}
                           alt={`Bedroom ${index + 1}`}
                           className="w-full h-20 object-cover rounded"
                         />
@@ -249,13 +355,14 @@ const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
               };
               input.click();
             }}
+            disabled={uploading}
           >
-            Choose Files
+            {uploading ? "Uploading..." : "Choose Files"}
           </Button>
         </CardContent>
       </Card>
 
-      {/* General Photos Grid */}
+      {/* All Photos Grid */}
       {data.photos && data.photos.length > 0 && (
         <div>
           <h4 className="font-medium mb-3">All Photos ({data.photos.length})</h4>
@@ -265,7 +372,7 @@ const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
                 <CardContent className="p-2">
                   <div className="aspect-square relative">
                     <img
-                      src={photo.preview}
+                      src={photo.preview || photo.url}
                       alt={`Property photo ${index + 1}`}
                       className="w-full h-full object-cover rounded"
                     />
