@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -17,11 +16,15 @@ import ChangePassword from "@/components/ChangePassword";
 import MyProperties from "@/components/host/MyProperties";
 import Inbox from "@/components/messaging/Inbox";
 import ProfilePictureUpload from "@/components/ProfilePictureUpload";
-
 const Profile = () => {
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    signOut
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [savedProperties, setSavedProperties] = useState([]);
@@ -32,9 +35,7 @@ const Profile = () => {
     is_host: false,
     verification_status: "unverified"
   });
-
   const defaultTab = searchParams.get('tab') || 'profile';
-
   useEffect(() => {
     if (!user) {
       navigate("/auth");
@@ -43,30 +44,25 @@ const Profile = () => {
     fetchProfile();
     fetchSavedProperties();
   }, [user, navigate]);
-
   const fetchProfile = async () => {
     if (!user) return;
-    
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
+    const {
+      data,
+      error
+    } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     if (error) {
       console.log("Profile fetch error:", error);
     } else if (data) {
       setProfile(data);
     }
   };
-
   const fetchSavedProperties = async () => {
     if (!user) return;
-
     try {
-      const { data, error } = await supabase
-        .from("saved_properties")
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from("saved_properties").select(`
           id,
           property_id,
           properties (
@@ -80,25 +76,19 @@ const Profile = () => {
             bedrooms,
             bathrooms
           )
-        `)
-        .eq("user_id", user.id);
-
+        `).eq("user_id", user.id);
       if (error) throw error;
       setSavedProperties(data || []);
     } catch (error) {
       console.error("Error fetching saved properties:", error);
     }
   };
-
   const removeSavedProperty = async (savedPropertyId: string) => {
     try {
-      const { error } = await supabase
-        .from("saved_properties")
-        .delete()
-        .eq("id", savedPropertyId);
-
+      const {
+        error
+      } = await supabase.from("saved_properties").delete().eq("id", savedPropertyId);
       if (error) throw error;
-
       setSavedProperties(prev => prev.filter(item => item.id !== savedPropertyId));
       toast({
         title: "Removed from saved",
@@ -113,21 +103,18 @@ const Profile = () => {
       });
     }
   };
-
   const updateProfile = async () => {
     if (!user) return;
-    
     setLoading(true);
-    const { error } = await supabase
-      .from("profiles")
-      .upsert({
-        id: user.id,
-        full_name: profile.full_name,
-        phone: profile.phone,
-        avatar_url: profile.avatar_url,
-        updated_at: new Date().toISOString()
-      });
-
+    const {
+      error
+    } = await supabase.from("profiles").upsert({
+      id: user.id,
+      full_name: profile.full_name,
+      phone: profile.phone,
+      avatar_url: profile.avatar_url,
+      updated_at: new Date().toISOString()
+    });
     if (error) {
       toast({
         title: "Error",
@@ -142,19 +129,17 @@ const Profile = () => {
     }
     setLoading(false);
   };
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
   };
-
   const becomeHost = async () => {
     setLoading(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ is_host: true })
-      .eq("id", user.id);
-
+    const {
+      error
+    } = await supabase.from("profiles").update({
+      is_host: true
+    }).eq("id", user.id);
     if (error) {
       toast({
         title: "Error",
@@ -162,7 +147,10 @@ const Profile = () => {
         variant: "destructive"
       });
     } else {
-      setProfile({ ...profile, is_host: true });
+      setProfile({
+        ...profile,
+        is_host: true
+      });
       toast({
         title: "Welcome Host!",
         description: "You can now create property listings"
@@ -171,19 +159,20 @@ const Profile = () => {
     }
     setLoading(false);
   };
-
   const handleVerificationSubmitted = () => {
-    setProfile({ ...profile, verification_status: 'pending' });
+    setProfile({
+      ...profile,
+      verification_status: 'pending'
+    });
   };
-
   const handleAvatarUpdate = (newUrl: string) => {
-    setProfile({ ...profile, avatar_url: newUrl });
+    setProfile({
+      ...profile,
+      avatar_url: newUrl
+    });
   };
-
   if (!user) return null;
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <Header />
       
       <main className="container mx-auto px-4 py-8">
@@ -199,8 +188,8 @@ const Profile = () => {
             <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
-              <TabsTrigger value="hosting">Hosting</TabsTrigger>
-              <TabsTrigger value="properties">My Properties</TabsTrigger>
+              
+              
               <TabsTrigger value="saved">Saved</TabsTrigger>
               <TabsTrigger value="inbox">Inbox</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -216,41 +205,27 @@ const Profile = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex justify-center mb-6">
-                    <ProfilePictureUpload
-                      currentAvatarUrl={profile.avatar_url}
-                      userInitial={profile.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
-                      userId={user.id}
-                      onAvatarUpdate={handleAvatarUpdate}
-                    />
+                    <ProfilePictureUpload currentAvatarUrl={profile.avatar_url} userInitial={profile.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"} userId={user.id} onAvatarUpdate={handleAvatarUpdate} />
                   </div>
                   
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="full_name">Full Name</Label>
-                      <Input
-                        id="full_name"
-                        value={profile.full_name}
-                        onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                        placeholder="Enter your full name"
-                      />
+                      <Input id="full_name" value={profile.full_name} onChange={e => setProfile({
+                      ...profile,
+                      full_name: e.target.value
+                    })} placeholder="Enter your full name" />
                     </div>
                     <div>
                       <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        value={profile.phone}
-                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                        placeholder="+216 XX XXX XXX"
-                      />
+                      <Input id="phone" value={profile.phone} onChange={e => setProfile({
+                      ...profile,
+                      phone: e.target.value
+                    })} placeholder="+216 XX XXX XXX" />
                     </div>
                     <div>
                       <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        value={user.email}
-                        disabled
-                        className="bg-muted"
-                      />
+                      <Input id="email" value={user.email} disabled className="bg-muted" />
                     </div>
                   </div>
 
@@ -262,10 +237,7 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="verification">
-              <IdVerification
-                verificationStatus={profile.verification_status}
-                onVerificationSubmitted={handleVerificationSubmitted}
-              />
+              <IdVerification verificationStatus={profile.verification_status} onVerificationSubmitted={handleVerificationSubmitted} />
             </TabsContent>
 
             <TabsContent value="hosting">
@@ -277,8 +249,7 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {profile.is_host ? (
-                    <div className="space-y-4">
+                  {profile.is_host ? <div className="space-y-4">
                       <div className="flex items-center space-x-2">
                         <Shield className="h-5 w-5 text-green-600" />
                         <span className="text-green-600 font-medium">You are a verified host</span>
@@ -289,17 +260,14 @@ const Profile = () => {
                       <Button onClick={() => navigate("/host/onboarding")}>
                         Create New Listing
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
+                    </div> : <div className="space-y-4">
                       <p className="text-muted-foreground">
                         Become a host and start earning by renting out your property.
                       </p>
                       <Button onClick={becomeHost} disabled={loading}>
                         {loading ? "Processing..." : "Become a Host"}
                       </Button>
-                    </div>
-                  )}
+                    </div>}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -313,18 +281,14 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {profile.is_host ? (
-                    <MyProperties />
-                  ) : (
-                    <div className="text-center py-6">
+                  {profile.is_host ? <MyProperties /> : <div className="text-center py-6">
                       <p className="text-muted-foreground mb-4">
                         You need to become a host to create and manage properties.
                       </p>
                       <Button onClick={becomeHost} disabled={loading}>
                         {loading ? "Processing..." : "Become a Host"}
                       </Button>
-                    </div>
-                  )}
+                    </div>}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -338,8 +302,7 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {savedProperties.length === 0 ? (
-                    <div className="text-center py-6">
+                  {savedProperties.length === 0 ? <div className="text-center py-6">
                       <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                       <p className="text-muted-foreground mb-4">
                         You haven't saved any properties yet.
@@ -347,23 +310,12 @@ const Profile = () => {
                       <Button onClick={() => navigate("/search")}>
                         Browse Properties
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {savedProperties.map((item: any) => (
-                        <div key={item.id} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    </div> : <div className="space-y-4">
+                      {savedProperties.map((item: any) => <div key={item.id} className="flex items-center space-x-4 p-4 border rounded-lg">
                           <div className="relative h-20 w-20 bg-muted rounded overflow-hidden">
-                            {item.properties.photos && Array.isArray(item.properties.photos) && item.properties.photos.length > 0 ? (
-                              <img 
-                                src={(item.properties.photos[0] as any)?.url || "/placeholder.svg"} 
-                                alt={item.properties.title}
-                                className="object-cover w-full h-full"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
+                            {item.properties.photos && Array.isArray(item.properties.photos) && item.properties.photos.length > 0 ? <img src={(item.properties.photos[0] as any)?.url || "/placeholder.svg"} alt={item.properties.title} className="object-cover w-full h-full" /> : <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
                                 No photo
-                              </div>
-                            )}
+                              </div>}
                           </div>
                           <div className="flex-1">
                             <h3 className="font-medium">{item.properties.title}</h3>
@@ -376,25 +328,15 @@ const Profile = () => {
                             <p className="font-medium">{item.properties.price_per_night} TND/night</p>
                           </div>
                           <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/property/${item.properties.id}`)}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/property/${item.properties.id}`)}>
                               View
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeSavedProperty(item.id)}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => removeSavedProperty(item.id)}>
                               Remove
                             </Button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        </div>)}
+                    </div>}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -450,8 +392,6 @@ const Profile = () => {
       </main>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Profile;
