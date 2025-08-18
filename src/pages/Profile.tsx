@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -200,20 +201,7 @@ const Profile = () => {
     });
     
     try {
-      // First check if profile exists, if not create it
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", user.id)
-        .single();
-        
-      if (fetchError && fetchError.code === 'PGRST116') {
-        // Profile doesn't exist, create it first
-        console.log("Profile doesn't exist, creating first...");
-        await createProfile();
-      }
-      
-      // Now update the profile
+      // Update the profile directly - if it doesn't exist, the RLS policy will prevent the update
       const { data, error } = await supabase
         .from("profiles")
         .update({
@@ -228,11 +216,51 @@ const Profile = () => {
         
       if (error) {
         console.error("Profile update error:", error);
-        toast({
-          title: "Error",
-          description: `Failed to update profile: ${error.message}`,
-          variant: "destructive"
-        });
+        
+        // If profile doesn't exist, create it first then try again
+        if (error.code === 'PGRST116') {
+          console.log("Profile doesn't exist, creating first...");
+          await createProfile();
+          
+          // Try the update again
+          const { data: retryData, error: retryError } = await supabase
+            .from("profiles")
+            .update({
+              full_name: profile.full_name,
+              phone: profile.phone,
+              bio: profile.bio,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", user.id)
+            .select()
+            .single();
+            
+          if (retryError) {
+            console.error("Retry profile update error:", retryError);
+            toast({
+              title: "Error",
+              description: `Failed to update profile: ${retryError.message}`,
+              variant: "destructive"
+            });
+          } else {
+            console.log("Profile updated successfully on retry:", retryData);
+            toast({
+              title: "Success",
+              description: "Profile updated successfully"
+            });
+            
+            // Redirect to verification tab if not verified
+            if (profile.verification_status === "unverified") {
+              setSearchParams({ tab: 'verification' });
+            }
+          }
+        } else {
+          toast({
+            title: "Error",
+            description: `Failed to update profile: ${error.message}`,
+            variant: "destructive"
+          });
+        }
       } else {
         console.log("Profile updated successfully:", data);
         toast({
