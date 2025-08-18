@@ -200,6 +200,20 @@ const Profile = () => {
     });
     
     try {
+      // First check if profile exists, if not create it
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+        
+      if (fetchError && fetchError.code === 'PGRST116') {
+        // Profile doesn't exist, create it first
+        console.log("Profile doesn't exist, creating first...");
+        await createProfile();
+      }
+      
+      // Now update the profile
       const { data, error } = await supabase
         .from("profiles")
         .update({
