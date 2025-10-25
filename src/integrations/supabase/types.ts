@@ -47,14 +47,20 @@ export type Database = {
           check_out_date: string
           check_out_time: string | null
           created_at: string
+          deposit_amount: number | null
           guest_id: string
+          guest_service_fee: number | null
           host_id: string
           host_response: string | null
           id: string
+          payment_method: string | null
+          payment_status: string | null
+          platform_commission: number | null
           property_id: string
           request_message: string | null
           responded_at: string | null
           status: string | null
+          stripe_payment_intent_id: string | null
           total_price: number
           updated_at: string
         }
@@ -66,14 +72,20 @@ export type Database = {
           check_out_date: string
           check_out_time?: string | null
           created_at?: string
+          deposit_amount?: number | null
           guest_id: string
+          guest_service_fee?: number | null
           host_id: string
           host_response?: string | null
           id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          platform_commission?: number | null
           property_id: string
           request_message?: string | null
           responded_at?: string | null
           status?: string | null
+          stripe_payment_intent_id?: string | null
           total_price: number
           updated_at?: string
         }
@@ -85,14 +97,20 @@ export type Database = {
           check_out_date?: string
           check_out_time?: string | null
           created_at?: string
+          deposit_amount?: number | null
           guest_id?: string
+          guest_service_fee?: number | null
           host_id?: string
           host_response?: string | null
           id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          platform_commission?: number | null
           property_id?: string
           request_message?: string | null
           responded_at?: string | null
           status?: string | null
+          stripe_payment_intent_id?: string | null
           total_price?: number
           updated_at?: string
         }
@@ -469,10 +487,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_admin: {
-        Args: { user_email: string }
-        Returns: boolean
-      }
+      is_admin: { Args: { user_email: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
