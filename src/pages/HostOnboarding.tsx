@@ -16,6 +16,7 @@ import PropertyPricing from "@/components/host/PropertyPricing";
 import PropertyReview from "@/components/host/PropertyReview";
 import SafetyFeaturesForm from "@/components/host/SafetyFeaturesForm";
 import HostWelcomeMessage from "@/components/host/HostWelcomeMessage";
+import { propertyBasicsSchema, propertyDetailsSchema } from "@/lib/validation";
 
 const HostOnboarding = () => {
   const navigate = useNavigate();
@@ -217,6 +218,47 @@ const HostOnboarding = () => {
 
     setLoading(true);
     try {
+      // Validate property basics
+      const basicsValidation = propertyBasicsSchema.safeParse({
+        title: propertyData.title,
+        description: propertyData.description,
+        property_type: propertyData.property_type,
+        governorate: propertyData.governorate,
+        city: propertyData.city,
+        address: propertyData.address,
+        house_rules: propertyData.house_rules,
+        price_per_night: propertyData.price_per_night,
+        minimum_stay: propertyData.minimum_stay
+      });
+
+      if (!basicsValidation.success) {
+        toast({
+          title: "Validation Error",
+          description: basicsValidation.error.errors[0].message,
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Validate property details
+      const detailsValidation = propertyDetailsSchema.safeParse({
+        bedrooms: propertyData.bedrooms,
+        bathrooms: propertyData.bathrooms,
+        max_guests: propertyData.max_guests,
+        extra_beds: propertyData.extra_beds
+      });
+
+      if (!detailsValidation.success) {
+        toast({
+          title: "Validation Error",
+          description: detailsValidation.error.errors[0].message,
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
       const propertyPayload = {
         title: propertyData.title,
         description: propertyData.description,

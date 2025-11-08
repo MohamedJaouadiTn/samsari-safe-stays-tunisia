@@ -19,6 +19,7 @@ import MyProperties from "@/components/host/MyProperties";
 import Inbox from "@/components/messaging/Inbox";
 import ReservationRequests from "@/components/ReservationRequests";
 import ProfilePictureUpload from "@/components/ProfilePictureUpload";
+import { profileUpdateSchema } from "@/lib/validation";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -201,6 +202,23 @@ const Profile = () => {
     });
     
     try {
+      // Validate profile data
+      const validation = profileUpdateSchema.safeParse({
+        full_name: profile.full_name,
+        phone: profile.phone,
+        bio: profile.bio
+      });
+
+      if (!validation.success) {
+        toast({
+          title: "Validation Error",
+          description: validation.error.errors[0].message,
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
       // Update the profile directly - if it doesn't exist, the RLS policy will prevent the update
       const { data, error } = await supabase
         .from("profiles")

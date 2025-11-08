@@ -83,7 +83,7 @@ const PropertyDetails = () => {
       // Check for active or upcoming bookings
       const { data, error } = await supabase
         .from("bookings")
-        .select("*")
+        .select("id, property_id, check_in_date, check_out_date, status")
         .eq("property_id", property.id)
         .gte("check_out_date", new Date().toISOString().split('T')[0]);
 
