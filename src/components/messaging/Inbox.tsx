@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { messageSchema } from "@/lib/validation";
 type Conversation = {
   id: string;
   property_id: string;
@@ -221,13 +222,15 @@ const Inbox: React.FC = () => {
     if (!newMessage.trim() || !activeConversation || !user) return;
     setSendingMessage(true);
     try {
+      const validated = messageSchema.parse({ content: newMessage });
+      
       const {
         data,
         error
       } = await supabase.from('messages').insert({
         conversation_id: activeConversation.id,
         sender_id: user.id,
-        content: newMessage.trim()
+        content: validated.content
       }).select().single();
       if (error) throw error;
 
@@ -239,11 +242,11 @@ const Inbox: React.FC = () => {
 
       // Add message to local state immediately for better UX
       setMessages(prev => [...prev, data]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: error.errors?.[0]?.message || "Failed to send message",
         variant: "destructive"
       });
     } finally {

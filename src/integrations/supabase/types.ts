@@ -170,6 +170,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "host_bookings_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conversations_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -445,6 +452,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "host_bookings_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reviews_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -484,7 +498,86 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      host_bookings_view: {
+        Row: {
+          actual_check_in: string | null
+          actual_check_out: string | null
+          check_in_date: string | null
+          check_in_time: string | null
+          check_out_date: string | null
+          check_out_time: string | null
+          created_at: string | null
+          deposit_amount: number | null
+          guest_id: string | null
+          host_id: string | null
+          host_response: string | null
+          id: string | null
+          payment_method: string | null
+          payment_status: string | null
+          property_id: string | null
+          request_message: string | null
+          responded_at: string | null
+          status: string | null
+          stripe_payment_intent_id: string | null
+          total_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_check_in?: string | null
+          actual_check_out?: string | null
+          check_in_date?: string | null
+          check_in_time?: string | null
+          check_out_date?: string | null
+          check_out_time?: string | null
+          created_at?: string | null
+          deposit_amount?: number | null
+          guest_id?: string | null
+          host_id?: string | null
+          host_response?: string | null
+          id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          property_id?: string | null
+          request_message?: string | null
+          responded_at?: string | null
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          total_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_check_in?: string | null
+          actual_check_out?: string | null
+          check_in_date?: string | null
+          check_in_time?: string | null
+          check_out_date?: string | null
+          check_out_time?: string | null
+          created_at?: string | null
+          deposit_amount?: number | null
+          guest_id?: string | null
+          host_id?: string | null
+          host_response?: string | null
+          id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          property_id?: string | null
+          request_message?: string | null
+          responded_at?: string | null
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          total_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       is_admin: { Args: { user_email: string }; Returns: boolean }

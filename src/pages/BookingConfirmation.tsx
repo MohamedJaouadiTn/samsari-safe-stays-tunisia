@@ -10,6 +10,7 @@ import HostInteraction from "@/components/booking/HostInteraction";
 import PropertyBookingDetails from "@/components/booking/PropertyBookingDetails";
 import ReservationDeposit from "@/components/booking/ReservationDeposit";
 import { Tables } from "@/integrations/supabase/types";
+import { bookingSchema } from "@/lib/validation";
 
 type Property = Tables<"properties">;
 
@@ -101,17 +102,13 @@ const BookingConfirmation = () => {
   const handleSubmitBooking = async () => {
     if (!property || !user) return;
 
-    if (!phoneNumber || phoneNumber === "+216 ") {
-      toast({
-        title: "Phone number required",
-        description: "Please enter your phone number",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setSubmitting(true);
     try {
+      // Validate input
+      const validated = bookingSchema.parse({
+        phoneNumber,
+        guestMessage
+      });
       const bookingData = {
         property_id: property.id,
         host_id: property.host_id,
@@ -159,11 +156,11 @@ const BookingConfirmation = () => {
       // Send message to host with booking details and guest message
       let messageContent = `New booking request!\n\n`;
       
-      if (guestMessage.trim()) {
-        messageContent += `Guest message: ${guestMessage.trim()}\n\n`;
+      if (validated.guestMessage?.trim()) {
+        messageContent += `Guest message: ${validated.guestMessage.trim()}\n\n`;
       }
       
-      messageContent += `Phone number: ${phoneNumber}\n`;
+      messageContent += `Phone number: ${validated.phoneNumber}\n`;
       messageContent += `Reservation dates: ${new Date(bookingDetails.checkIn).toLocaleDateString()} to ${new Date(bookingDetails.checkOut).toLocaleDateString()}\n`;
       messageContent += `Guests: ${bookingDetails.guests}\n`;
       messageContent += `Nights: ${bookingDetails.nights}\n`;
@@ -183,7 +180,7 @@ const BookingConfirmation = () => {
       console.error("Error submitting booking:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to submit booking",
+        description: error.errors?.[0]?.message || error.message || "Failed to submit booking",
         variant: "destructive"
       });
     } finally {

@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Shield } from "lucide-react";
 import { Link } from "react-router-dom";
+import { signInSchema, signUpSchema } from "@/lib/validation";
 
 const Auth = () => {
   const { user, signIn, signUp } = useAuth();
@@ -43,17 +44,26 @@ const Auth = () => {
     setLoading(true);
     setIsNewUser(false);
     
-    const { error } = await signIn(signInData.email, signInData.password);
-    
-    if (error) {
+    try {
+      const validated = signInSchema.parse(signInData);
+      const { error } = await signIn(validated.email, validated.password);
+      
+      if (error) {
+        toast({
+          title: "Sign in failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
       toast({
-        title: "Sign in failed",
-        description: error.message,
+        title: "Validation Error",
+        description: error.errors?.[0]?.message || "Invalid input",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -61,23 +71,33 @@ const Auth = () => {
     setLoading(true);
     setIsNewUser(true);
     
-    const { error } = await signUp(signUpData.email, signUpData.password, signUpData.fullName);
-    
-    if (error) {
+    try {
+      const validated = signUpSchema.parse(signUpData);
+      const { error } = await signUp(validated.email, validated.password, validated.fullName);
+      
+      if (error) {
+        toast({
+          title: "Sign up failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        setIsNewUser(false);
+      } else {
+        toast({
+          title: "Welcome to Samsari!",
+          description: "Please complete your profile to get started."
+        });
+      }
+    } catch (error: any) {
       toast({
-        title: "Sign up failed",
-        description: error.message,
+        title: "Validation Error",
+        description: error.errors?.[0]?.message || "Invalid input",
         variant: "destructive"
       });
       setIsNewUser(false);
-    } else {
-      toast({
-        title: "Welcome to Samsari!",
-        description: "Please complete your profile to get started."
-      });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   if (user) return null;

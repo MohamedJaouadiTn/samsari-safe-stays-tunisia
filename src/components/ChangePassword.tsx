@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { changePasswordSchema } from "@/lib/validation";
 
 const ChangePassword = () => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -17,30 +18,17 @@ const ChangePassword = () => {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "New passwords don't match",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setLoading(true);
     
     try {
+      const validated = changePasswordSchema.parse({
+        currentPassword,
+        newPassword,
+        confirmPassword
+      });
+
       const { error } = await supabase.auth.updateUser({
-        password: newPassword
+        password: validated.newPassword
       });
 
       if (error) throw error;
@@ -57,7 +45,7 @@ const ChangePassword = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update password",
+        description: error.errors?.[0]?.message || error.message || "Failed to update password",
         variant: "destructive"
       });
     } finally {

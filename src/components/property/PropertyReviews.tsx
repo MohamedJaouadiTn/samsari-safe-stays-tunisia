@@ -9,6 +9,7 @@ import { Star, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
+import { reviewSchema } from "@/lib/validation";
 
 type Review = Tables<"reviews">;
 
@@ -92,16 +93,11 @@ const PropertyReviews = ({ propertyId }: PropertyReviewsProps) => {
   };
 
   const submitReview = async () => {
-    if (!rating || rating < 1 || rating > 5) {
-      toast({
-        title: "Invalid Rating",
-        description: "Please select a rating between 1 and 5 stars",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
+      const validated = reviewSchema.parse({
+        rating,
+        comment
+      });
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -135,8 +131,8 @@ const PropertyReviews = ({ propertyId }: PropertyReviewsProps) => {
           booking_id: bookings[0].id,
           property_id: propertyId,
           user_id: user.id,
-          rating,
-          comment: comment.trim() || null
+          rating: validated.rating,
+          comment: validated.comment || null
         });
 
       if (error) throw error;
@@ -150,11 +146,11 @@ const PropertyReviews = ({ propertyId }: PropertyReviewsProps) => {
       setRating(0);
       setCanReview(false);
       fetchReviews();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting review:", error);
       toast({
         title: "Error",
-        description: "Failed to submit review",
+        description: error.errors?.[0]?.message || "Failed to submit review",
         variant: "destructive"
       });
     }
