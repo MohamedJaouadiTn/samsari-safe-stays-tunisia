@@ -38,7 +38,9 @@ export const useUnreadMessages = () => {
 
         if (msgError) throw msgError;
 
-        setUnreadCount(unreadMessages?.length || 0);
+        const count = unreadMessages?.length || 0;
+        console.log('Unread messages count:', count);
+        setUnreadCount(count);
       } catch (error) {
         console.error('Error fetching unread count:', error);
         setUnreadCount(0);
@@ -49,12 +51,21 @@ export const useUnreadMessages = () => {
 
     // Set up real-time subscription for message changes
     const channel = supabase
-      .channel('unread-messages')
+      .channel('unread-messages-updates')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'messages'
-      }, () => {
+      }, (payload) => {
+        console.log('Message change detected:', payload.eventType);
+        fetchUnreadCount();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'conversations'
+      }, (payload) => {
+        console.log('Conversation change detected:', payload.eventType);
         fetchUnreadCount();
       })
       .subscribe();

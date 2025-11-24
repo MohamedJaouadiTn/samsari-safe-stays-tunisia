@@ -138,11 +138,24 @@ const Inbox: React.FC = () => {
         return true;
       }) || [];
 
-      // Get profiles for other users
-      const otherUserIds = filteredConversations?.map(conv => conv.host_id === user.id ? conv.guest_id : conv.host_id) || [];
+      // Get profiles for other users - make sure we have unique user IDs
+      const otherUserIdsSet = new Set(filteredConversations?.map(conv => 
+        conv.host_id === user.id ? conv.guest_id : conv.host_id
+      ));
+      const otherUserIds = Array.from(otherUserIdsSet);
+      
+      console.log('Fetching profiles for users:', otherUserIds);
+      
       const {
-        data: profilesData
+        data: profilesData,
+        error: profilesError
       } = await supabase.from('profiles').select('id, full_name').in('id', otherUserIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      } else {
+        console.log('Fetched profiles:', profilesData);
+      }
 
       // Get last messages and unread counts
       const conversationIds = filteredConversations?.map(conv => conv.id) || [];
@@ -159,12 +172,15 @@ const Inbox: React.FC = () => {
         const otherUser = profilesData?.find(p => p.id === otherUserId);
         const lastMessage = lastMessages?.find(m => m.conversation_id === conv.id);
         const unreadCount = unreadCounts?.filter(m => m.conversation_id === conv.id).length || 0;
+        
+        console.log(`Conversation ${conv.id}: otherUserId=${otherUserId}, otherUser=`, otherUser);
+        
         return {
           id: conv.id,
           property_id: conv.property_id,
           property_title: (conv.properties as any)?.title || 'Property',
           other_user_id: otherUserId,
-          other_user_name: otherUser?.full_name || 'Unknown User',
+          other_user_name: otherUser?.full_name || 'Guest User',
           last_message: lastMessage?.content || 'No messages yet',
           last_message_time: lastMessage?.created_at || conv.created_at,
           unread_count: unreadCount,
@@ -173,6 +189,8 @@ const Inbox: React.FC = () => {
           deleted_by_guest: conv.deleted_by_guest
         };
       }) || [];
+      
+      console.log('Formatted conversations:', formattedConversations);
       setConversations(formattedConversations);
     } catch (error) {
       console.error('Error fetching conversations:', error);
