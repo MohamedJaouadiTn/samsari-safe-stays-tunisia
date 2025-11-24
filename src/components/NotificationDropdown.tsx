@@ -36,20 +36,30 @@ const NotificationDropdown = () => {
           created_at,
           check_in_date,
           check_out_date,
-          properties(title),
-          profiles!guest_id(full_name)
+          guest_id,
+          properties(title)
         `)
         .eq("host_id", user.id)
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
-      if (reservationRequests) {
+      if (reservationRequests && reservationRequests.length > 0) {
+        // Fetch guest profiles separately
+        const guestIds = reservationRequests.map(r => r.guest_id);
+        const { data: guestProfiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", guestIds);
+
+        const profileMap = new Map(guestProfiles?.map(p => [p.id, p]) || []);
+
         reservationRequests.forEach(request => {
+          const guestProfile = profileMap.get(request.guest_id);
           notificationsList.push({
             id: request.id,
             type: 'reservation_request',
             title: 'New Reservation Request',
-            message: `${(request.profiles as any)?.full_name || 'A guest'} wants to book ${(request.properties as any)?.title}`,
+            message: `${guestProfile?.full_name || 'A guest'} wants to book ${(request.properties as any)?.title}`,
             timestamp: request.created_at,
             link: '/profile?tab=requests'
           });
