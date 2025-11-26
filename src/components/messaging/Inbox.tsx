@@ -222,18 +222,24 @@ const Inbox: React.FC = () => {
   const markMessagesAsRead = async (conversationId: string) => {
     if (!user) return;
     try {
+      // Mark messages as read in the database
       const {
         error
       } = await supabase.from('messages').update({
         read: true
       }).eq('conversation_id', conversationId).eq('read', false).neq('sender_id', user.id);
+      
       if (error) throw error;
 
-      // Update unread count in local state
-      setConversations(prev => prev.map(conv => conv.id === conversationId ? {
-        ...conv,
-        unread_count: 0
-      } : conv));
+      // Update local messages state immediately
+      setMessages(prev => prev.map(msg => 
+        msg.sender_id !== user.id ? { ...msg, read: true } : msg
+      ));
+
+      // Update conversations list immediately
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId ? { ...conv, unread_count: 0 } : conv
+      ));
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
