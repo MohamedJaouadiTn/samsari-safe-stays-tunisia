@@ -202,9 +202,8 @@ const Profile = () => {
     });
     
     try {
-      // Validate profile data
+      // Validate profile data (excluding full_name which is now read-only)
       const validation = profileUpdateSchema.safeParse({
-        full_name: profile.full_name,
         phone: profile.phone,
         bio: profile.bio
       });
@@ -223,7 +222,6 @@ const Profile = () => {
       const { data, error } = await supabase
         .from("profiles")
         .update({
-          full_name: profile.full_name,
           phone: profile.phone,
           bio: profile.bio,
           updated_at: new Date().toISOString()
@@ -244,7 +242,6 @@ const Profile = () => {
           const { data: retryData, error: retryError } = await supabase
             .from("profiles")
             .update({
-              full_name: profile.full_name,
               phone: profile.phone,
               bio: profile.bio,
               updated_at: new Date().toISOString()
@@ -389,9 +386,13 @@ const Profile = () => {
                       <Input 
                         id="full_name" 
                         value={profile.full_name} 
-                        onChange={e => setProfile({ ...profile, full_name: e.target.value })} 
-                        placeholder="Enter your full name" 
+                        disabled
+                        className="bg-muted cursor-not-allowed" 
+                        placeholder="Full name set during signup" 
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Full name cannot be changed after signup
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor="bio">Bio</Label>
