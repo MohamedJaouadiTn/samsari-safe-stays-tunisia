@@ -49,15 +49,15 @@ export const useUnreadMessages = () => {
     // Initial fetch
     fetchUnreadCount();
 
-    // Set up real-time subscription with immediate updates
+    // Set up real-time subscription - refetch on any message change
     const channel = supabase
-      .channel('unread-messages-updates')
+      .channel(`unread-messages-${user.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'messages'
       }, (payload) => {
-        // If it's not from the current user, increment count
+        // If it's not from the current user, refetch count
         if (payload.new.sender_id !== user.id) {
           fetchUnreadCount();
         }
@@ -66,11 +66,9 @@ export const useUnreadMessages = () => {
         event: 'UPDATE',
         schema: 'public',
         table: 'messages'
-      }, (payload) => {
-        // If message was marked as read, update count immediately
-        if (payload.new.read === true && payload.old.read === false) {
-          fetchUnreadCount();
-        }
+      }, () => {
+        // Refetch count on any message update (read status change)
+        fetchUnreadCount();
       })
       .on('postgres_changes', {
         event: '*',

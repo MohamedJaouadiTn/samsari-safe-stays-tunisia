@@ -240,6 +240,9 @@ const Inbox: React.FC = () => {
       setConversations(prev => prev.map(conv => 
         conv.id === conversationId ? { ...conv, unread_count: 0 } : conv
       ));
+
+      // Refetch conversations to ensure full sync with database
+      await fetchConversations();
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }

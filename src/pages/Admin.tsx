@@ -13,7 +13,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const Admin = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -23,8 +23,10 @@ const Admin = () => {
   const [properties, setProperties] = useState([]);
 
   useEffect(() => {
-    checkAdminAccess();
-  }, [user]);
+    if (!authLoading) {
+      checkAdminAccess();
+    }
+  }, [user, authLoading]);
 
   const checkAdminAccess = async () => {
     if (!user) {
@@ -159,7 +161,7 @@ const Admin = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
