@@ -96,6 +96,7 @@ const Inbox: React.FC = () => {
           const newMessage = payload.new as Message;
           // If it's a new message in the active conversation, add it to messages
           if (activeConversation && newMessage.conversation_id === activeConversation.id) {
+            shouldScrollRef.current = true; // Enable scroll for incoming messages
             setMessages(prev => [...prev, newMessage]);
           }
           // Refresh conversations to update last message and unread count
