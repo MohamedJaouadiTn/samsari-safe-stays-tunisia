@@ -74,7 +74,6 @@ const Inbox: React.FC = () => {
         schema: 'public',
         table: 'messages'
       }, payload => {
-        console.log('Message event:', payload);
         if (payload.eventType === 'INSERT') {
           const newMessage = payload.new as Message;
           // If it's a new message in the active conversation, add it to messages
@@ -94,8 +93,18 @@ const Inbox: React.FC = () => {
           fetchConversations();
         }
       }).subscribe();
+
+      // Auto-refresh messages every 8 seconds
+      const refreshInterval = setInterval(() => {
+        fetchConversations();
+        if (activeConversation) {
+          loadMessages(activeConversation.id);
+        }
+      }, 8000);
+
       return () => {
         supabase.removeChannel(conversationChannel);
+        clearInterval(refreshInterval);
       };
     }
   }, [user, activeConversation?.id]);
@@ -144,8 +153,6 @@ const Inbox: React.FC = () => {
       ));
       const otherUserIds = Array.from(otherUserIdsSet);
       
-      console.log('Fetching profiles for users:', otherUserIds);
-      
       const {
         data: profilesData,
         error: profilesError
@@ -153,8 +160,6 @@ const Inbox: React.FC = () => {
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
-      } else {
-        console.log('Fetched profiles:', profilesData);
       }
 
       // Get last messages and unread counts
@@ -173,14 +178,12 @@ const Inbox: React.FC = () => {
         const lastMessage = lastMessages?.find(m => m.conversation_id === conv.id);
         const unreadCount = unreadCounts?.filter(m => m.conversation_id === conv.id).length || 0;
         
-        console.log(`Conversation ${conv.id}: otherUserId=${otherUserId}, otherUser=`, otherUser);
-        
         return {
           id: conv.id,
           property_id: conv.property_id,
           property_title: (conv.properties as any)?.title || 'Property',
           other_user_id: otherUserId,
-          other_user_name: otherUser?.full_name || 'Guest User',
+          other_user_name: otherUser?.full_name?.trim() || 'Unknown User',
           last_message: lastMessage?.content || 'No messages yet',
           last_message_time: lastMessage?.created_at || conv.created_at,
           unread_count: unreadCount,
@@ -190,7 +193,6 @@ const Inbox: React.FC = () => {
         };
       }) || [];
       
-      console.log('Formatted conversations:', formattedConversations);
       setConversations(formattedConversations);
     } catch (error) {
       console.error('Error fetching conversations:', error);
