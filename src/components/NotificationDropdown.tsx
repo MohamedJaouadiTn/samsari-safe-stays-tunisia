@@ -17,7 +17,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 
 const NotificationDropdown = () => {
   const { user } = useAuth();
-  const notificationCount = useNotifications();
+  const { notificationCount, markAsViewed } = useNotifications();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -66,24 +66,6 @@ const NotificationDropdown = () => {
         });
       }
 
-      // Check verification status
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("verification_status")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.verification_status === 'verified') {
-        notificationsList.push({
-          id: 'verification_approved',
-          type: 'verification',
-          title: 'Identity Verified',
-          message: 'Your identity has been successfully verified!',
-          timestamp: new Date().toISOString(),
-          link: '/profile?tab=verification'
-        });
-      }
-
       setNotifications(notificationsList);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -94,6 +76,8 @@ const NotificationDropdown = () => {
 
   const handleDropdownOpen = () => {
     fetchNotifications();
+    // Mark as viewed immediately when dropdown opens
+    markAsViewed();
   };
 
   if (!user) return null;

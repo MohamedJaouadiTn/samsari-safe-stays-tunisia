@@ -7,44 +7,49 @@ export const useUnreadMessages = () => {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
+  const fetchUnreadCount = async () => {
     if (!user) {
       setUnreadCount(0);
       return;
     }
 
-    const fetchUnreadCount = async () => {
-      try {
-        // Get all conversations for the user
-        const { data: conversations, error: convError } = await supabase
-          .from('conversations')
-          .select('id')
-          .or(`host_id.eq.${user.id},guest_id.eq.${user.id}`);
+    try {
+      // Get all conversations for the user
+      const { data: conversations, error: convError } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`host_id.eq.${user.id},guest_id.eq.${user.id}`);
 
-        if (convError) throw convError;
+      if (convError) throw convError;
 
-        if (!conversations || conversations.length === 0) {
-          setUnreadCount(0);
-          return;
-        }
-
-        // Get unread messages count - only messages sent by other users
-        const { data: unreadMessages, error: msgError } = await supabase
-          .from('messages')
-          .select('id')
-          .in('conversation_id', conversations.map(c => c.id))
-          .eq('read', false)
-          .neq('sender_id', user.id);
-
-        if (msgError) throw msgError;
-
-        const count = unreadMessages?.length || 0;
-        setUnreadCount(count);
-      } catch (error) {
-        console.error('Error fetching unread count:', error);
+      if (!conversations || conversations.length === 0) {
         setUnreadCount(0);
+        return;
       }
-    };
+
+      // Get unread messages count - only messages sent by other users
+      const { data: unreadMessages, error: msgError } = await supabase
+        .from('messages')
+        .select('id')
+        .in('conversation_id', conversations.map(c => c.id))
+        .eq('read', false)
+        .neq('sender_id', user.id);
+
+      if (msgError) throw msgError;
+
+      const count = unreadMessages?.length || 0;
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
 
     // Initial fetch
     fetchUnreadCount();
@@ -84,5 +89,5 @@ export const useUnreadMessages = () => {
     };
   }, [user]);
 
-  return unreadCount;
+  return { unreadCount, refetch: fetchUnreadCount };
 };
