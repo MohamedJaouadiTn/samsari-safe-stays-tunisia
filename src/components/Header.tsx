@@ -14,10 +14,15 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const unreadCount = useUnreadMessages();
+  const { unreadCount, refetch: refetchUnreadMessages } = useUnreadMessages();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleMessagesClick = () => {
+    // Trigger immediate refetch when clicking messages icon
+    refetchUnreadMessages();
   };
 
   return (
@@ -51,7 +56,7 @@ const Header = () => {
             <LanguageSelector />
             {user && (
               <>
-                <Link to="/profile?tab=inbox" className="relative">
+                <Link to="/profile?tab=inbox" className="relative" onClick={handleMessagesClick}>
                   <Button variant="ghost" size="icon">
                     <MessageSquare className="h-5 w-5" />
                     {unreadCount > 0 && (
@@ -125,7 +130,10 @@ const Header = () => {
                     <Link 
                       to="/profile?tab=inbox" 
                       className="relative"
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={() => {
+                        handleMessagesClick();
+                        setIsMenuOpen(false);
+                      }}
                     >
                       <Button variant="ghost" size="icon">
                         <MessageSquare className="h-5 w-5" />

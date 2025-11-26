@@ -31,7 +31,7 @@ const ProfileDropdown = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const unreadCount = useUnreadMessages();
+  const { unreadCount } = useUnreadMessages();
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {

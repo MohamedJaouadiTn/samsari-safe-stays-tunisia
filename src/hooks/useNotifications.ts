@@ -6,16 +6,23 @@ import { supabase } from "@/integrations/supabase/client";
 export const useNotifications = () => {
   const { user } = useAuth();
   const [notificationCount, setNotificationCount] = useState(0);
+  const [lastViewedTime, setLastViewedTime] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
+    // Load last viewed time from localStorage
+    const stored = localStorage.getItem(`notifications_last_viewed_${user.id}`);
+    if (stored) {
+      setLastViewedTime(stored);
+    }
+
     const fetchNotifications = async () => {
       try {
-        // Count pending reservation requests for hosts
+        // Count pending reservation requests for hosts created after last view
         const { data: reservationRequests, error: reservationError } = await supabase
           .from("bookings")
-          .select("id")
+          .select("id, created_at")
           .eq("host_id", user.id)
           .eq("status", "pending");
 
@@ -24,21 +31,12 @@ export const useNotifications = () => {
           return;
         }
 
-        // Count pending verification status updates
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("verification_status")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error("Error fetching profile:", profileError);
-          return;
+        // Only count requests created after last viewed time
+        let count = 0;
+        if (reservationRequests) {
+          const lastViewed = stored || new Date(0).toISOString();
+          count = reservationRequests.filter(req => req.created_at > lastViewed).length;
         }
-
-        // Only count pending reservation requests
-        // Don't include verification status as a permanent notification
-        const count = reservationRequests?.length || 0;
 
         setNotificationCount(count);
       } catch (error) {
@@ -74,5 +72,13 @@ export const useNotifications = () => {
     };
   }, [user]);
 
-  return notificationCount;
+  const markAsViewed = () => {
+    if (!user) return;
+    const now = new Date().toISOString();
+    localStorage.setItem(`notifications_last_viewed_${user.id}`, now);
+    setLastViewedTime(now);
+    setNotificationCount(0);
+  };
+
+  return { notificationCount, markAsViewed };
 };
