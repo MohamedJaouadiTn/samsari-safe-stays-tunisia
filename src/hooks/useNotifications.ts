@@ -36,12 +36,9 @@ export const useNotifications = () => {
           return;
         }
 
-        let count = (reservationRequests?.length || 0);
-        
-        // Add notification if verification was recently approved
-        if (profile?.verification_status === 'verified') {
-          count += 1;
-        }
+        // Only count pending reservation requests
+        // Don't include verification status as a permanent notification
+        const count = reservationRequests?.length || 0;
 
         setNotificationCount(count);
       } catch (error) {
@@ -53,7 +50,7 @@ export const useNotifications = () => {
 
     // Set up real-time subscription for bookings
     const bookingsSubscription = supabase
-      .channel('notifications-bookings')
+      .channel(`notifications-bookings-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -68,8 +65,12 @@ export const useNotifications = () => {
       )
       .subscribe();
 
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+
     return () => {
       supabase.removeChannel(bookingsSubscription);
+      clearInterval(interval);
     };
   }, [user]);
 
