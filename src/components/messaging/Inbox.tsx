@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { messageSchema } from "@/lib/validation";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 type Conversation = {
   id: string;
   property_id: string;
@@ -43,6 +44,7 @@ const Inbox: React.FC = () => {
   const {
     toast
   } = useToast();
+  const { refetch: refetchUnreadMessages } = useUnreadMessages();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -50,14 +52,30 @@ const Inbox: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousMessageCountRef = useRef<number>(0);
+  const shouldScrollRef = useRef<boolean>(true);
+  
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth"
-    });
+    if (shouldScrollRef.current) {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth"
+      });
+    }
   };
+  
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll if we should (new messages, not just refresh)
+    if (messages.length > previousMessageCountRef.current) {
+      scrollToBottom();
+    }
+    previousMessageCountRef.current = messages.length;
   }, [messages]);
+  
+  const handleConversationClick = (conversation: Conversation) => {
+    setActiveConversation(conversation);
+    // Trigger badge refetch when clicking a conversation
+    refetchUnreadMessages();
+  };
   useEffect(() => {
     if (user) {
       fetchConversations();
@@ -94,13 +112,13 @@ const Inbox: React.FC = () => {
         }
       }).subscribe();
 
-      // Auto-refresh messages every 8 seconds
+      // Auto-refresh messages every 2 seconds
       const refreshInterval = setInterval(() => {
         fetchConversations();
         if (activeConversation) {
           loadMessages(activeConversation.id);
         }
-      }, 8000);
+      }, 2000);
 
       return () => {
         supabase.removeChannel(conversationChannel);
@@ -110,6 +128,7 @@ const Inbox: React.FC = () => {
   }, [user, activeConversation?.id]);
   useEffect(() => {
     if (activeConversation) {
+      shouldScrollRef.current = true; // Allow scroll when switching conversations
       loadMessages(activeConversation.id);
       markMessagesAsRead(activeConversation.id);
     }
@@ -269,8 +288,12 @@ const Inbox: React.FC = () => {
       }).eq('id', activeConversation.id);
       setNewMessage('');
 
-      // Add message to local state immediately for better UX
+      // Add message to local state immediately and scroll
+      shouldScrollRef.current = true;
       setMessages(prev => [...prev, data]);
+      
+      // Refresh to sync
+      await loadMessages(activeConversation.id);
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
@@ -377,7 +400,7 @@ const Inbox: React.FC = () => {
                       <p className="text-muted-foreground">No messages yet</p>
                     </div> : <div className="space-y-2">
                       {conversations.map(conversation => <div key={conversation.id} className="relative group">
-                          <div className={`p-3 rounded-lg cursor-pointer hover:bg-muted transition-colors ${activeConversation?.id === conversation.id ? 'bg-muted' : ''}`} onClick={() => setActiveConversation(conversation)}>
+                          <div className={`p-3 rounded-lg cursor-pointer hover:bg-muted transition-colors ${activeConversation?.id === conversation.id ? 'bg-muted' : ''}`} onClick={() => handleConversationClick(conversation)}>
                             <div className="flex justify-between items-start mb-1">
                               <div className="font-medium flex items-center">
                                 <UserRound className="h-4 w-4 mr-1.5" />
