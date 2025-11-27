@@ -48,33 +48,33 @@ const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `property-photos/${fileName}`;
 
-      console.log('Uploading file to:', filePath);
+      // Convert to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.readAsDataURL(file);
+      });
 
-      const { data, error } = await supabase.storage
-        .from('property-photos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      const base64File = await base64Promise;
 
-      if (error) {
-        console.error('Upload error:', error);
-        throw error;
-      }
+      // Upload to R2
+      const { data: uploadData, error } = await supabase.functions.invoke('upload-to-r2', {
+        body: {
+          file: base64File,
+          fileName,
+          contentType: file.type,
+          bucketPath: `property-photos/${data.host_id}`
+        }
+      });
 
-      console.log('Upload successful:', data);
-
-      // Get the public URL
-      const { data: urlData } = supabase.storage
-        .from('property-photos')
-        .getPublicUrl(filePath);
-
-      console.log('Public URL:', urlData.publicUrl);
-      return urlData.publicUrl;
+      if (error) throw error;
+      return uploadData.url;
     } catch (error) {
-      console.error('Error uploading to Supabase:', error);
+      console.error('Error uploading to R2:', error);
       return null;
     }
   };
