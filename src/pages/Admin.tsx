@@ -11,11 +11,13 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Clock, FileText, User, Home } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [verifications, setVerifications] = useState([]);
@@ -43,8 +45,8 @@ const Admin = () => {
 
       if (!data) {
         toast({
-          title: "Access Denied",
-          description: "You don't have admin privileges",
+          title: t('admin.access_denied'),
+          description: t('admin.no_privileges'),
           variant: "destructive"
         });
         navigate("/");
@@ -66,16 +68,12 @@ const Admin = () => {
       // Load ID verifications
       const { data: verificationsData, error: verError } = await supabase
         .from('id_verifications')
-        .select(`
-          *,
-          profiles!inner(full_name, avatar_url)
-        `)
+        .select('*')
         .order('submitted_at', { ascending: false });
 
       if (verError) throw verError;
-      setVerifications(verificationsData || []);
 
-      // Load all profiles
+      // Load profiles separately and merge
       const { data: profilesData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -84,23 +82,39 @@ const Admin = () => {
       if (profileError) throw profileError;
       setProfiles(profilesData || []);
 
+      // Merge verifications with profiles
+      const verificationsWithProfiles = verificationsData?.map(ver => {
+        const profile = profilesData?.find(p => p.id === ver.user_id);
+        return {
+          ...ver,
+          profiles: profile ? { full_name: profile.full_name, avatar_url: profile.avatar_url } : null
+        };
+      }) || [];
+      setVerifications(verificationsWithProfiles);
+
       // Load all properties
       const { data: propertiesData, error: propError } = await supabase
         .from('properties')
-        .select(`
-          *,
-          profiles!inner(full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (propError) throw propError;
-      setProperties(propertiesData || []);
+
+      // Merge properties with profiles
+      const propertiesWithProfiles = propertiesData?.map(prop => {
+        const profile = profilesData?.find(p => p.id === prop.host_id);
+        return {
+          ...prop,
+          profiles: profile ? { full_name: profile.full_name } : null
+        };
+      }) || [];
+      setProperties(propertiesWithProfiles);
 
     } catch (error) {
       console.error('Error loading admin data:', error);
       toast({
-        title: "Error",
-        description: "Failed to load admin data",
+        title: t('common.error'),
+        description: t('admin.error_loading'),
         variant: "destructive"
       });
     }
@@ -133,16 +147,16 @@ const Admin = () => {
       }
 
       toast({
-        title: "Success",
-        description: `Verification ${status} successfully`,
+        title: t('common.success'),
+        description: t('admin.verification_updated'),
       });
 
       loadAdminData();
     } catch (error) {
       console.error('Error updating verification:', error);
       toast({
-        title: "Error",
-        description: "Failed to update verification",
+        title: t('common.error'),
+        description: t('admin.error_updating'),
         variant: "destructive"
       });
     }
@@ -151,11 +165,12 @@ const Admin = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />{t('status.pending')}</Badge>;
       case 'approved':
-        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+      case 'verified':
+        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />{t('status.approved')}</Badge>;
       case 'rejected':
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />{t('status.rejected')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -166,7 +181,7 @@ const Admin = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading admin panel...</p>
+          <p>{t('admin.loading')}</p>
         </div>
       </div>
     );
@@ -182,21 +197,21 @@ const Admin = () => {
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Admin Panel</h1>
+          <h1 className="text-3xl font-bold mb-8">{t('admin.title')}</h1>
           
           <Tabs defaultValue="verifications" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="verifications">
                 <FileText className="w-4 h-4 mr-2" />
-                ID Verifications ({verifications.length})
+                {t('admin.verifications')} ({verifications.length})
               </TabsTrigger>
               <TabsTrigger value="users">
                 <User className="w-4 h-4 mr-2" />
-                Users ({profiles.length})
+                {t('admin.users')} ({profiles.length})
               </TabsTrigger>
               <TabsTrigger value="properties">
                 <Home className="w-4 h-4 mr-2" />
-                Properties ({properties.length})
+                {t('admin.properties')} ({properties.length})
               </TabsTrigger>
             </TabsList>
 
@@ -207,9 +222,9 @@ const Admin = () => {
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <div>
-                          <CardTitle className="text-lg">{verification.profiles?.full_name || 'Unknown User'}</CardTitle>
+                          <CardTitle className="text-lg">{verification.profiles?.full_name || t('admin.unknown_user')}</CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            Submitted: {new Date(verification.submitted_at).toLocaleDateString()}
+                            {t('admin.submitted')}: {new Date(verification.submitted_at).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -218,26 +233,26 @@ const Admin = () => {
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div>
-                          <p className="font-medium mb-2">CIN Front</p>
+                          <p className="font-medium mb-2">{t('admin.cin_front')}</p>
                           <img 
                             src={verification.cin_front_url} 
-                            alt="CIN Front" 
+                            alt={t('admin.cin_front')} 
                             className="w-full h-32 object-cover rounded border"
                           />
                         </div>
                         <div>
-                          <p className="font-medium mb-2">CIN Back</p>
+                          <p className="font-medium mb-2">{t('admin.cin_back')}</p>
                           <img 
                             src={verification.cin_back_url} 
-                            alt="CIN Back" 
+                            alt={t('admin.cin_back')} 
                             className="w-full h-32 object-cover rounded border"
                           />
                         </div>
                         <div>
-                          <p className="font-medium mb-2">Selfie with CIN</p>
+                          <p className="font-medium mb-2">{t('admin.selfie')}</p>
                           <img 
                             src={verification.selfie_url} 
-                            alt="Selfie" 
+                            alt={t('admin.selfie')} 
                             className="w-full h-32 object-cover rounded border"
                           />
                         </div>
@@ -250,21 +265,21 @@ const Admin = () => {
                             onClick={() => handleVerificationUpdate(verification.id, 'approved')}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            Approve
+                            {t('admin.approve')}
                           </Button>
                           <Button 
                             variant="destructive" 
                             onClick={() => handleVerificationUpdate(verification.id, 'rejected', 'Rejected by admin')}
                           >
                             <XCircle className="w-4 h-4 mr-2" />
-                            Reject
+                            {t('admin.reject')}
                           </Button>
                         </div>
                       )}
                       
                       {verification.reviewer_notes && (
                         <div className="mt-4 p-3 bg-muted rounded">
-                          <p className="font-medium">Reviewer Notes:</p>
+                          <p className="font-medium">{t('admin.reviewer_notes')}:</p>
                           <p className="text-sm">{verification.reviewer_notes}</p>
                         </div>
                       )}
@@ -295,20 +310,20 @@ const Admin = () => {
                           <div>
                             <CardTitle>{profile.full_name || 'No name'}</CardTitle>
                             <p className="text-sm text-muted-foreground">
-                              Joined: {new Date(profile.created_at).toLocaleDateString()}
+                              {t('admin.joined')}: {new Date(profile.created_at).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                         <div className="flex space-x-2">
                           {getStatusBadge(profile.verification_status)}
-                          {profile.is_host && <Badge variant="outline">Host</Badge>}
+                          {profile.is_host && <Badge variant="outline">{t('admin.host')}</Badge>}
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="text-sm text-muted-foreground">
-                        <p>Phone: {profile.phone || 'Not provided'}</p>
-                        <p>Username: {profile.username || 'Not set'}</p>
+                        <p>{t('admin.phone')}: {profile.phone || t('admin.not_provided')}</p>
+                        <p>{t('admin.username')}: {profile.username || t('admin.not_set')}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -325,15 +340,15 @@ const Admin = () => {
                         <div>
                           <CardTitle>{property.title}</CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            Host: {property.profiles?.full_name} • {property.city}, {property.governorate}
+                            {t('admin.host')}: {property.profiles?.full_name} • {property.city}, {property.governorate}
                           </p>
                         </div>
                         <div className="flex space-x-2">
                           {getStatusBadge(property.status)}
                           {property.is_public ? (
-                            <Badge variant="default">Public</Badge>
+                            <Badge variant="default">{t('admin.public')}</Badge>
                           ) : (
-                            <Badge variant="secondary">Private</Badge>
+                            <Badge variant="secondary">{t('admin.private')}</Badge>
                           )}
                         </div>
                       </div>
@@ -341,20 +356,20 @@ const Admin = () => {
                     <CardContent>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
-                          <p className="font-medium">Price</p>
-                          <p>{property.price_per_night} TND/night</p>
+                          <p className="font-medium">{t('admin.price')}</p>
+                          <p>{property.price_per_night} TND/{t('admin.night')}</p>
                         </div>
                         <div>
-                          <p className="font-medium">Guests</p>
-                          <p>{property.max_guests} guests</p>
+                          <p className="font-medium">{t('admin.guests')}</p>
+                          <p>{property.max_guests} {t('admin.guests').toLowerCase()}</p>
                         </div>
                         <div>
-                          <p className="font-medium">Bedrooms</p>
-                          <p>{property.bedrooms} bedrooms</p>
+                          <p className="font-medium">{t('admin.bedrooms')}</p>
+                          <p>{property.bedrooms} {t('admin.bedrooms').toLowerCase()}</p>
                         </div>
                         <div>
-                          <p className="font-medium">Bathrooms</p>
-                          <p>{property.bathrooms} bathrooms</p>
+                          <p className="font-medium">{t('admin.bathrooms')}</p>
+                          <p>{property.bathrooms} {t('admin.bathrooms').toLowerCase()}</p>
                         </div>
                       </div>
                       {property.description && (
