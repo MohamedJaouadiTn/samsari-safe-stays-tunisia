@@ -37,9 +37,7 @@ const Admin = () => {
     }
 
     try {
-      const { data, error } = await supabase.rpc('is_admin', {
-        user_email: user.email
-      });
+      const { data, error } = await supabase.rpc('is_admin');
 
       if (error) throw error;
 
