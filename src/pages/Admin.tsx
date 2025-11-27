@@ -80,14 +80,33 @@ const Admin = () => {
       if (profileError) throw profileError;
       setProfiles(profilesData || []);
 
-      // Merge verifications with profiles
-      const verificationsWithProfiles = verificationsData?.map(ver => {
-        const profile = profilesData?.find(p => p.id === ver.user_id);
-        return {
-          ...ver,
-          profiles: profile ? { full_name: profile.full_name, avatar_url: profile.avatar_url } : null
-        };
-      }) || [];
+      // Merge verifications with profiles and generate signed URLs for images
+      const verificationsWithProfiles = await Promise.all(
+        (verificationsData || []).map(async (ver) => {
+          const profile = profilesData?.find(p => p.id === ver.user_id);
+          
+          // Generate signed URLs for ID images (valid for 1 hour)
+          const { data: cinFrontUrl } = await supabase.storage
+            .from('id-verification')
+            .createSignedUrl(ver.cin_front_url, 3600);
+          
+          const { data: cinBackUrl } = await supabase.storage
+            .from('id-verification')
+            .createSignedUrl(ver.cin_back_url, 3600);
+          
+          const { data: selfieUrl } = await supabase.storage
+            .from('id-verification')
+            .createSignedUrl(ver.selfie_url, 3600);
+          
+          return {
+            ...ver,
+            cin_front_signed_url: cinFrontUrl?.signedUrl,
+            cin_back_signed_url: cinBackUrl?.signedUrl,
+            selfie_signed_url: selfieUrl?.signedUrl,
+            profiles: profile ? { full_name: profile.full_name, avatar_url: profile.avatar_url } : null
+          };
+        })
+      );
       setVerifications(verificationsWithProfiles);
 
       // Load all properties
@@ -232,27 +251,45 @@ const Admin = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div>
                           <p className="font-medium mb-2">{t('admin.cin_front')}</p>
-                          <img 
-                            src={verification.cin_front_url} 
-                            alt={t('admin.cin_front')} 
-                            className="w-full h-32 object-cover rounded border"
-                          />
+                          {verification.cin_front_signed_url ? (
+                            <img 
+                              src={verification.cin_front_signed_url} 
+                              alt={t('admin.cin_front')} 
+                              className="w-full h-32 object-cover rounded border"
+                            />
+                          ) : (
+                            <div className="w-full h-32 bg-muted rounded border flex items-center justify-center text-sm text-muted-foreground">
+                              {t('common.no_image')}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="font-medium mb-2">{t('admin.cin_back')}</p>
-                          <img 
-                            src={verification.cin_back_url} 
-                            alt={t('admin.cin_back')} 
-                            className="w-full h-32 object-cover rounded border"
-                          />
+                          {verification.cin_back_signed_url ? (
+                            <img 
+                              src={verification.cin_back_signed_url} 
+                              alt={t('admin.cin_back')} 
+                              className="w-full h-32 object-cover rounded border"
+                            />
+                          ) : (
+                            <div className="w-full h-32 bg-muted rounded border flex items-center justify-center text-sm text-muted-foreground">
+                              {t('common.no_image')}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="font-medium mb-2">{t('admin.selfie')}</p>
-                          <img 
-                            src={verification.selfie_url} 
-                            alt={t('admin.selfie')} 
-                            className="w-full h-32 object-cover rounded border"
-                          />
+                          {verification.selfie_signed_url ? (
+                            <img 
+                              src={verification.selfie_signed_url} 
+                              alt={t('admin.selfie')} 
+                              className="w-full h-32 object-cover rounded border"
+                            />
+                          ) : (
+                            <div className="w-full h-32 bg-muted rounded border flex items-center justify-center text-sm text-muted-foreground">
+                              {t('common.no_image')}
+                            </div>
+                          )}
                         </div>
                       </div>
                       
