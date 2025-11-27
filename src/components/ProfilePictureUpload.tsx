@@ -67,25 +67,34 @@ const ProfilePictureUpload = ({
       // Compress the image
       const compressedFile = await compressImage(file, 800, 0.7);
       
-      const fileExt = 'jpg'; // Always use jpg after compression
-      const fileName = `${userId}/avatar.${fileExt}`;
+      const fileExt = 'jpg';
+      const fileName = `avatar-${Date.now()}.${fileExt}`;
 
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, compressedFile, { upsert: true });
+      // Convert to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.readAsDataURL(compressedFile);
+      });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
+      const base64File = await base64Promise;
 
-      // Get public URL
-      const { data } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
+      // Upload to R2
+      const { data, error } = await supabase.functions.invoke('upload-to-r2', {
+        body: {
+          file: base64File,
+          fileName,
+          contentType: 'image/jpeg',
+          bucketPath: `avatars/${userId}`
+        }
+      });
 
-      const avatarUrl = `${data.publicUrl}?t=${Date.now()}`; // Add timestamp to prevent caching
+      if (error) throw error;
+      
+      const avatarUrl = data.url;
 
       // Update profile in profiles table
       const { error: updateError } = await supabase

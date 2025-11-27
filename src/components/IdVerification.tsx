@@ -40,12 +40,30 @@ const IdVerification = ({ verificationStatus, onVerificationSubmitted }: IdVerif
   };
 
   const uploadFile = async (file: File, path: string) => {
-    const { data, error } = await supabase.storage
-      .from('id-verification')
-      .upload(path, file);
+    // Convert to base64
+    const reader = new FileReader();
+    const base64Promise = new Promise<string>((resolve) => {
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    const base64File = await base64Promise;
+
+    // Upload to R2
+    const { data, error } = await supabase.functions.invoke('upload-to-r2', {
+      body: {
+        file: base64File,
+        fileName: path.split('/').pop(),
+        contentType: file.type,
+        bucketPath: `id-verification/${path.split('/')[0]}`
+      }
+    });
 
     if (error) throw error;
-    return data;
+    return { path: `${path.split('/')[0]}/${path.split('/').pop()}` };
   };
 
   const submitVerification = async () => {
@@ -68,7 +86,7 @@ const IdVerification = ({ verificationStatus, onVerificationSubmitted }: IdVerif
       const cinBackPath = `${userId}/cin-back-${timestamp}.jpg`;
       const selfiePath = `${userId}/selfie-${timestamp}.jpg`;
 
-      await Promise.all([
+      const [cinFrontResult, cinBackResult, selfieResult] = await Promise.all([
         uploadFile(files.cinFront, cinFrontPath),
         uploadFile(files.cinBack, cinBackPath),
         uploadFile(files.selfie, selfiePath)
@@ -79,9 +97,9 @@ const IdVerification = ({ verificationStatus, onVerificationSubmitted }: IdVerif
         .from('id_verifications')
         .insert({
           user_id: userId,
-          cin_front_url: cinFrontPath,
-          cin_back_url: cinBackPath,
-          selfie_url: selfiePath
+          cin_front_url: cinFrontResult.path,
+          cin_back_url: cinBackResult.path,
+          selfie_url: selfieResult.path
         });
 
       if (error) throw error;
