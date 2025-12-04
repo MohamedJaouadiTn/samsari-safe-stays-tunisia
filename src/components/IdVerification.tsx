@@ -334,6 +334,16 @@ const IdVerification = ({ verificationStatus, onVerificationSubmitted }: IdVerif
             </Button>
           </div>
         )}
+
+        {verificationStatus === 'rejected' && (
+          <div className="text-center space-y-4 mb-6">
+            <XCircle className="h-12 w-12 mx-auto text-red-500" />
+            <p className="font-medium text-red-600">Verification Rejected</p>
+            <p className="text-sm text-gray-600">
+              Your verification was rejected. Please upload new documents below.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

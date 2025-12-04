@@ -44,7 +44,7 @@ const Inbox: React.FC = () => {
   const {
     toast
   } = useToast();
-  const { refetch: refetchUnreadMessages } = useUnreadMessages();
+  const { refetch: refetchUnreadMessages, markAllAsRead } = useUnreadMessages();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -54,6 +54,15 @@ const Inbox: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef<number>(0);
   const shouldScrollRef = useRef<boolean>(true);
+  const initialLoadRef = useRef<boolean>(true);
+  
+  // Mark all as read on mount (when user opens inbox)
+  useEffect(() => {
+    if (initialLoadRef.current && user) {
+      markAllAsRead();
+      initialLoadRef.current = false;
+    }
+  }, [user, markAllAsRead]);
   
   const scrollToBottom = () => {
     if (shouldScrollRef.current) {
@@ -73,12 +82,12 @@ const Inbox: React.FC = () => {
   
   const handleConversationClick = (conversation: Conversation) => {
     setActiveConversation(conversation);
-    // Trigger badge refetch when clicking a conversation
+    // Mark messages as read when clicking a conversation
     refetchUnreadMessages();
   };
   useEffect(() => {
     if (user) {
-      fetchConversations();
+      fetchConversations(true); // Show loading only on initial fetch
 
       // Set up real-time subscription for conversations
       const conversationChannel = supabase.channel('conversations-changes').on('postgres_changes', {
@@ -86,7 +95,7 @@ const Inbox: React.FC = () => {
         schema: 'public',
         table: 'conversations'
       }, () => {
-        fetchConversations();
+        fetchConversations(false);
       }).on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -100,7 +109,7 @@ const Inbox: React.FC = () => {
             setMessages(prev => [...prev, newMessage]);
           }
           // Refresh conversations to update last message and unread count
-          fetchConversations();
+          fetchConversations(false);
         }
         if (payload.eventType === 'UPDATE') {
           const updatedMessage = payload.new as Message;
@@ -109,13 +118,14 @@ const Inbox: React.FC = () => {
             setMessages(prev => prev.map(msg => msg.id === updatedMessage.id ? updatedMessage : msg));
           }
           // Refresh conversations to update unread count
-          fetchConversations();
+          fetchConversations(false);
         }
       }).subscribe();
 
-      // Auto-refresh messages every 2 seconds
+      // Auto-refresh messages every 2 seconds (silently, no loading indicator)
       const refreshInterval = setInterval(() => {
-        fetchConversations();
+        shouldScrollRef.current = false; // Don't scroll on auto-refresh
+        fetchConversations(false);
         if (activeConversation) {
           loadMessages(activeConversation.id);
         }
@@ -134,9 +144,9 @@ const Inbox: React.FC = () => {
       markMessagesAsRead(activeConversation.id);
     }
   }, [activeConversation]);
-  const fetchConversations = async () => {
+  const fetchConversations = async (showLoading = false) => {
     if (!user) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const {
         data: conversationsData,

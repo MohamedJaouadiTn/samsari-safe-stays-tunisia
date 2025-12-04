@@ -31,7 +31,7 @@ const ProfileDropdown = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { unreadCount } = useUnreadMessages();
+  const { unreadCount, markAllAsRead } = useUnreadMessages();
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
@@ -209,7 +209,7 @@ const ProfileDropdown = () => {
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link to="/profile?tab=inbox" className="flex items-center">
+          <Link to="/profile?tab=inbox" className="flex items-center" onClick={markAllAsRead}>
             <MessageSquare className="mr-2 h-4 w-4" />
             Messages
             {unreadCount > 0 && (
