@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -7,7 +7,7 @@ export const useUnreadMessages = () => {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (!user) {
       setUnreadCount(0);
       return;
@@ -43,7 +43,7 @@ export const useUnreadMessages = () => {
       console.error('Error fetching unread count:', error);
       setUnreadCount(0);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -87,7 +87,39 @@ export const useUnreadMessages = () => {
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [user, fetchUnreadCount]);
+
+  // Mark all messages as read and clear badge
+  const markAllAsRead = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      // Get all conversations for the user
+      const { data: conversations, error: convError } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`host_id.eq.${user.id},guest_id.eq.${user.id}`);
+
+      if (convError) throw convError;
+
+      if (!conversations || conversations.length === 0) return;
+
+      // Mark all unread messages as read
+      const { error } = await supabase
+        .from('messages')
+        .update({ read: true })
+        .in('conversation_id', conversations.map(c => c.id))
+        .eq('read', false)
+        .neq('sender_id', user.id);
+
+      if (error) throw error;
+      
+      // Immediately set count to 0
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
   }, [user]);
 
-  return { unreadCount, refetch: fetchUnreadCount };
+  return { unreadCount, refetch: fetchUnreadCount, markAllAsRead };
 };

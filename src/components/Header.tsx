@@ -14,15 +14,15 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { unreadCount, refetch: refetchUnreadMessages } = useUnreadMessages();
+  const { unreadCount, markAllAsRead } = useUnreadMessages();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
   const handleMessagesClick = () => {
-    // Trigger immediate refetch when clicking messages icon
-    refetchUnreadMessages();
+    // Mark all messages as read when clicking messages icon
+    markAllAsRead();
   };
 
   return (

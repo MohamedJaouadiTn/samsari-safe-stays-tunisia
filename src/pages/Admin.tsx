@@ -85,24 +85,14 @@ const Admin = () => {
         (verificationsData || []).map(async (ver) => {
           const profile = profilesData?.find(p => p.id === ver.user_id);
           
-          // Generate signed URLs for ID images (valid for 1 hour)
-          const { data: cinFrontUrl } = await supabase.storage
-            .from('id-verification')
-            .createSignedUrl(ver.cin_front_url, 3600);
-          
-          const { data: cinBackUrl } = await supabase.storage
-            .from('id-verification')
-            .createSignedUrl(ver.cin_back_url, 3600);
-          
-          const { data: selfieUrl } = await supabase.storage
-            .from('id-verification')
-            .createSignedUrl(ver.selfie_url, 3600);
+          // Build R2 URLs directly for ID images
+          const r2BaseUrl = 'https://cc8fc3ec000887e083db6cdb990774c4.r2.cloudflarestorage.com/samsari';
           
           return {
             ...ver,
-            cin_front_signed_url: cinFrontUrl?.signedUrl,
-            cin_back_signed_url: cinBackUrl?.signedUrl,
-            selfie_signed_url: selfieUrl?.signedUrl,
+            cin_front_signed_url: ver.cin_front_url ? `${r2BaseUrl}/id-verification/${ver.cin_front_url}` : null,
+            cin_back_signed_url: ver.cin_back_url ? `${r2BaseUrl}/id-verification/${ver.cin_back_url}` : null,
+            selfie_signed_url: ver.selfie_url ? `${r2BaseUrl}/id-verification/${ver.selfie_url}` : null,
             profiles: profile ? { full_name: profile.full_name, avatar_url: profile.avatar_url } : null
           };
         })
