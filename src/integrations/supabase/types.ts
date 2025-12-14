@@ -581,6 +581,33 @@ export type Database = {
           },
         ]
       }
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          id: string | null
+          is_host: boolean | null
+          username: string | null
+          verification_status: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_host?: boolean | null
+          username?: string | null
+          verification_status?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_host?: boolean | null
+          username?: string | null
+          verification_status?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       is_admin:
