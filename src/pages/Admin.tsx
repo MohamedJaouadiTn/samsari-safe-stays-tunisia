@@ -80,19 +80,40 @@ const Admin = () => {
       if (profileError) throw profileError;
       setProfiles(profilesData || []);
 
+      // Helper function to get signed URL from edge function
+      const getSignedUrl = async (path: string): Promise<string | null> => {
+        try {
+          const { data, error } = await supabase.functions.invoke('get-signed-url', {
+            body: { path }
+          });
+          if (error) {
+            console.error('Error getting signed URL:', error);
+            return null;
+          }
+          return data?.url || null;
+        } catch (err) {
+          console.error('Failed to get signed URL:', err);
+          return null;
+        }
+      };
+
       // Merge verifications with profiles and generate signed URLs for images
       const verificationsWithProfiles = await Promise.all(
         (verificationsData || []).map(async (ver) => {
           const profile = profilesData?.find(p => p.id === ver.user_id);
           
-          // Build R2 URLs directly for ID images
-          const r2BaseUrl = 'https://cc8fc3ec000887e083db6cdb990774c4.r2.cloudflarestorage.com/samsari';
+          // Get signed URLs for ID verification images (secure, time-limited)
+          const [cinFrontUrl, cinBackUrl, selfieUrl] = await Promise.all([
+            ver.cin_front_url ? getSignedUrl(`id-verification/${ver.cin_front_url}`) : null,
+            ver.cin_back_url ? getSignedUrl(`id-verification/${ver.cin_back_url}`) : null,
+            ver.selfie_url ? getSignedUrl(`id-verification/${ver.selfie_url}`) : null
+          ]);
           
           return {
             ...ver,
-            cin_front_signed_url: ver.cin_front_url ? `${r2BaseUrl}/id-verification/${ver.cin_front_url}` : null,
-            cin_back_signed_url: ver.cin_back_url ? `${r2BaseUrl}/id-verification/${ver.cin_back_url}` : null,
-            selfie_signed_url: ver.selfie_url ? `${r2BaseUrl}/id-verification/${ver.selfie_url}` : null,
+            cin_front_signed_url: cinFrontUrl,
+            cin_back_signed_url: cinBackUrl,
+            selfie_signed_url: selfieUrl,
             profiles: profile ? { full_name: profile.full_name, avatar_url: profile.avatar_url } : null
           };
         })
