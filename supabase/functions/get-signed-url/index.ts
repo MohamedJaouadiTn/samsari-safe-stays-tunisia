@@ -83,6 +83,7 @@ serve(async (req) => {
         accessKeyId: Deno.env.get('CLOUDFLARE_ACCESS_KEY_ID')!,
         secretAccessKey: Deno.env.get('CLOUDFLARE_SECRET_ACCESS_KEY')!,
       },
+      forcePathStyle: true, // Required for Cloudflare R2
     });
 
     // Generate signed URL with 15 minute expiration
