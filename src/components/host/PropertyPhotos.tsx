@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, X, Image, AlertCircle } from "lucide-react";
@@ -15,7 +15,18 @@ interface PropertyPhotosProps {
 const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   const requiredPhotoTypes = [
     { id: 'exterior', label: 'House Exterior', required: true },
@@ -67,7 +78,7 @@ const PropertyPhotos = ({ data, onUpdate }: PropertyPhotosProps) => {
           file: base64File,
           fileName,
           contentType: file.type,
-          bucketPath: `property-photos/${data.host_id}`
+          bucketPath: `property-photos/${userId}`
         }
       });
 
