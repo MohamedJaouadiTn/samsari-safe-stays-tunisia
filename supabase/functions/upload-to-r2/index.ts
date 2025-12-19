@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHmac } from "node:crypto";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,24 +20,43 @@ const ALLOWED_PATHS = ['id-verification', 'avatars', 'property-photos'];
 // Max file size: 10MB (base64 encoded is ~33% larger)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-// AWS Signature V4 signing functions
-function getSignatureKey(key: string, dateStamp: string, regionName: string, serviceName: string): ArrayBuffer {
-  const kDate = createHmac('sha256', 'AWS4' + key).update(dateStamp).digest();
-  const kRegion = createHmac('sha256', kDate).update(regionName).digest();
-  const kService = createHmac('sha256', kRegion).update(serviceName).digest();
-  const kSigning = createHmac('sha256', kService).update('aws4_request').digest();
-  return kSigning;
+// Helper to convert ArrayBuffer to hex string
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
+// HMAC-SHA256 using Web Crypto API
+async function hmacSha256(key: ArrayBuffer, data: string): Promise<ArrayBuffer> {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    key,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  return await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
+}
+
+// SHA-256 hash
 async function sha256(data: Uint8Array): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return toHex(hashBuffer);
 }
 
-function hmacSha256(key: ArrayBuffer | Uint8Array, data: string): string {
-  const hmac = createHmac('sha256', Buffer.from(key));
-  hmac.update(data);
-  return hmac.digest('hex');
+// AWS Signature V4 signing key
+async function getSignatureKey(
+  key: string,
+  dateStamp: string,
+  regionName: string,
+  serviceName: string
+): Promise<ArrayBuffer> {
+  const kDate = await hmacSha256(new TextEncoder().encode('AWS4' + key), dateStamp);
+  const kRegion = await hmacSha256(kDate, regionName);
+  const kService = await hmacSha256(kRegion, serviceName);
+  const kSigning = await hmacSha256(kService, 'aws4_request');
+  return kSigning;
 }
 
 serve(async (req) => {
@@ -103,7 +121,7 @@ serve(async (req) => {
     }
 
     // Validate file size (base64)
-    if (file.length > MAX_FILE_SIZE * 1.4) { // Account for base64 overhead
+    if (file.length > MAX_FILE_SIZE * 1.4) {
       return new Response(
         JSON.stringify({ error: 'File too large. Maximum size is 10MB.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -171,8 +189,9 @@ serve(async (req) => {
       `${credentialScope}\n` +
       `${canonicalRequestHash}`;
     
-    const signingKey = getSignatureKey(secretAccessKey, dateStamp, region, service);
-    const signature = hmacSha256(signingKey, stringToSign);
+    const signingKey = await getSignatureKey(secretAccessKey, dateStamp, region, service);
+    const signatureBuffer = await hmacSha256(signingKey, stringToSign);
+    const signature = toHex(signatureBuffer);
     
     const authorizationHeader = 
       `${algorithm} ` +
