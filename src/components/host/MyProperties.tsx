@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Edit, Trash2, Plus, BarChart3, Calendar, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, Edit, Trash2, Plus, Calendar, ExternalLink } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -103,12 +103,6 @@ const MyProperties: React.FC = () => {
           });
         }
       }
-      
-      // For views, we could implement a view tracking system in the future
-      // For now, we'll just use a random number for demonstration
-      properties.forEach(property => {
-        statsMap[property.id].views = Math.floor(Math.random() * 100) + 20;
-      });
       
       setPropertyStats(statsMap);
     } catch (error) {
@@ -277,10 +271,6 @@ const MyProperties: React.FC = () => {
                   {property.property_type} • {property.bedrooms} bedroom{property.bedrooms !== 1 ? 's' : ''} • {property.bathrooms} bathroom{property.bathrooms !== 1 ? 's' : ''}
                 </div>
                 <div className="flex flex-wrap gap-4 my-2">
-                  <div className="flex items-center">
-                    <BarChart3 className="h-4 w-4 mr-1 text-muted-foreground" />
-                    <span className="text-sm">{propertyStats[property.id]?.views || 0} Views</span>
-                  </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
                     <span className="text-sm">{propertyStats[property.id]?.bookings || 0} Bookings</span>
