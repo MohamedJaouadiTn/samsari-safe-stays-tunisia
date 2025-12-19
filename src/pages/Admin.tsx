@@ -12,6 +12,17 @@ import { CheckCircle, XCircle, Clock, FileText, User, Home } from "lucide-react"
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
@@ -23,6 +34,19 @@ const Admin = () => {
   const [verifications, setVerifications] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [properties, setProperties] = useState([]);
+  
+  // Rejection dialog state
+  const [rejectionDialog, setRejectionDialog] = useState<{
+    open: boolean;
+    verificationId: string | null;
+    notes: string;
+    allowResubmit: boolean;
+  }>({
+    open: false,
+    verificationId: null,
+    notes: '',
+    allowResubmit: true
+  });
 
   useEffect(() => {
     if (!authLoading) {
@@ -164,10 +188,14 @@ const Admin = () => {
       // Update profile verification status
       const verification = verifications.find(v => v.id === verificationId);
       if (verification) {
+        const newStatus = status === 'approved' 
+          ? 'verified' 
+          : (status === 'rejected_final' ? 'rejected' : 'unverified');
+        
         const { error: profileError } = await supabase
           .from('profiles')
           .update({
-            verification_status: status === 'approved' ? 'verified' : 'rejected'
+            verification_status: newStatus
           })
           .eq('id', verification.user_id);
 
@@ -190,6 +218,33 @@ const Admin = () => {
     }
   };
 
+  const openRejectionDialog = (verificationId: string) => {
+    setRejectionDialog({
+      open: true,
+      verificationId,
+      notes: '',
+      allowResubmit: true
+    });
+  };
+
+  const handleReject = () => {
+    if (!rejectionDialog.verificationId) return;
+    
+    const status = rejectionDialog.allowResubmit ? 'rejected' : 'rejected_final';
+    handleVerificationUpdate(
+      rejectionDialog.verificationId, 
+      status, 
+      rejectionDialog.notes
+    );
+    
+    setRejectionDialog({
+      open: false,
+      verificationId: null,
+      notes: '',
+      allowResubmit: true
+    });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -198,6 +253,7 @@ const Admin = () => {
       case 'verified':
         return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />{t('status.approved')}</Badge>;
       case 'rejected':
+      case 'rejected_final':
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />{t('status.rejected')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
@@ -315,7 +371,7 @@ const Admin = () => {
                           </Button>
                           <Button 
                             variant="destructive" 
-                            onClick={() => handleVerificationUpdate(verification.id, 'rejected', 'Rejected by admin')}
+                            onClick={() => openRejectionDialog(verification.id)}
                           >
                             <XCircle className="w-4 h-4 mr-2" />
                             {t('admin.reject')}
@@ -433,6 +489,63 @@ const Admin = () => {
       </main>
 
       <Footer />
+
+      {/* Rejection Dialog */}
+      <Dialog 
+        open={rejectionDialog.open} 
+        onOpenChange={(open) => setRejectionDialog(prev => ({ ...prev, open }))}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('admin.reject_verification')}</DialogTitle>
+            <DialogDescription>
+              {t('admin.reject_description')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-notes">{t('admin.rejection_reason')}</Label>
+              <Textarea
+                id="rejection-notes"
+                placeholder={t('admin.rejection_placeholder')}
+                value={rejectionDialog.notes}
+                onChange={(e) => setRejectionDialog(prev => ({ ...prev, notes: e.target.value }))}
+                className="min-h-[100px]"
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="allow-resubmit"
+                checked={rejectionDialog.allowResubmit}
+                onCheckedChange={(checked) => 
+                  setRejectionDialog(prev => ({ ...prev, allowResubmit: checked === true }))
+                }
+              />
+              <Label htmlFor="allow-resubmit" className="text-sm font-normal">
+                {t('admin.allow_resubmit')}
+              </Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setRejectionDialog(prev => ({ ...prev, open: false }))}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleReject}
+              disabled={!rejectionDialog.notes.trim()}
+            >
+              {t('admin.confirm_reject')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
