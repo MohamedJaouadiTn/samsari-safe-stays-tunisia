@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { S3Client, PutObjectCommand } from "npm:@aws-sdk/client-s3@3";
+import { createHmac } from "node:crypto";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +20,26 @@ const ALLOWED_PATHS = ['id-verification', 'avatars', 'property-photos'];
 
 // Max file size: 10MB (base64 encoded is ~33% larger)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// AWS Signature V4 signing functions
+function getSignatureKey(key: string, dateStamp: string, regionName: string, serviceName: string): ArrayBuffer {
+  const kDate = createHmac('sha256', 'AWS4' + key).update(dateStamp).digest();
+  const kRegion = createHmac('sha256', kDate).update(regionName).digest();
+  const kService = createHmac('sha256', kRegion).update(serviceName).digest();
+  const kSigning = createHmac('sha256', kService).update('aws4_request').digest();
+  return kSigning;
+}
+
+async function sha256(data: Uint8Array): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function hmacSha256(key: ArrayBuffer | Uint8Array, data: string): string {
+  const hmac = createHmac('sha256', Buffer.from(key));
+  hmac.update(data);
+  return hmac.digest('hex');
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -101,29 +121,85 @@ serve(async (req) => {
     // Prevent path traversal in fileName
     const sanitizedFileName = fileName.replace(/\.\./g, '').replace(/[\/\\]/g, '_');
 
-    // Initialize R2 client
-    const s3Client = new S3Client({
-      region: 'auto',
-      endpoint: Deno.env.get('CLOUDFLARE_S3_ENDPOINT'),
-      credentials: {
-        accessKeyId: Deno.env.get('CLOUDFLARE_ACCESS_KEY_ID')!,
-        secretAccessKey: Deno.env.get('CLOUDFLARE_SECRET_ACCESS_KEY')!,
-      },
-      forcePathStyle: true, // Required for Cloudflare R2
-    });
-
     // Convert base64 to Uint8Array
     const fileData = Uint8Array.from(atob(file), c => c.charCodeAt(0));
 
-    // Upload to R2
-    const command = new PutObjectCommand({
-      Bucket: Deno.env.get('CLOUDFLARE_BUCKET_NAME'),
-      Key: `${bucketPath}/${sanitizedFileName}`,
-      Body: fileData,
-      ContentType: contentType,
+    // Get R2 credentials
+    const accessKeyId = Deno.env.get('CLOUDFLARE_ACCESS_KEY_ID')!;
+    const secretAccessKey = Deno.env.get('CLOUDFLARE_SECRET_ACCESS_KEY')!;
+    const bucketName = Deno.env.get('CLOUDFLARE_BUCKET_NAME')!;
+    const accountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID')!;
+
+    // Build the request
+    const objectKey = `${bucketPath}/${sanitizedFileName}`;
+    const host = `${accountId}.r2.cloudflarestorage.com`;
+    const url = `https://${host}/${bucketName}/${objectKey}`;
+    
+    // AWS Signature V4 signing
+    const now = new Date();
+    const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+    const dateStamp = amzDate.substring(0, 8);
+    const region = 'auto';
+    const service = 's3';
+    
+    const payloadHash = await sha256(fileData);
+    
+    const canonicalHeaders = 
+      `content-type:${contentType}\n` +
+      `host:${host}\n` +
+      `x-amz-content-sha256:${payloadHash}\n` +
+      `x-amz-date:${amzDate}\n`;
+    
+    const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+    
+    const canonicalRequest = 
+      `PUT\n` +
+      `/${bucketName}/${objectKey}\n` +
+      `\n` +
+      `${canonicalHeaders}\n` +
+      `${signedHeaders}\n` +
+      `${payloadHash}`;
+    
+    const algorithm = 'AWS4-HMAC-SHA256';
+    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+    
+    const canonicalRequestHash = await sha256(new TextEncoder().encode(canonicalRequest));
+    
+    const stringToSign = 
+      `${algorithm}\n` +
+      `${amzDate}\n` +
+      `${credentialScope}\n` +
+      `${canonicalRequestHash}`;
+    
+    const signingKey = getSignatureKey(secretAccessKey, dateStamp, region, service);
+    const signature = hmacSha256(signingKey, stringToSign);
+    
+    const authorizationHeader = 
+      `${algorithm} ` +
+      `Credential=${accessKeyId}/${credentialScope}, ` +
+      `SignedHeaders=${signedHeaders}, ` +
+      `Signature=${signature}`;
+    
+    console.log('Uploading to R2:', url);
+    
+    // Upload using native fetch
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
+        'Host': host,
+        'x-amz-content-sha256': payloadHash,
+        'x-amz-date': amzDate,
+        'Authorization': authorizationHeader,
+      },
+      body: fileData,
     });
 
-    await s3Client.send(command);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('R2 upload failed:', response.status, errorText);
+      throw new Error(`R2 upload failed: ${response.status} ${errorText}`);
+    }
 
     // Return public URL
     const publicUrl = `${Deno.env.get('CLOUDFLARE_BUCKET_URL')}/${bucketPath}/${sanitizedFileName}`;
