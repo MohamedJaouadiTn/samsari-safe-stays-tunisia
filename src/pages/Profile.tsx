@@ -28,6 +28,7 @@ const Profile = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [savedProperties, setSavedProperties] = useState([]);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [profile, setProfile] = useState({
     full_name: "",
     phone: "",
@@ -37,16 +38,20 @@ const Profile = () => {
     verification_status: "unverified"
   });
 
-  const defaultTab = searchParams.get('tab') || 'profile';
+  const currentTab = searchParams.get('tab') || 'profile';
 
+  // Only fetch data once on mount, not on tab changes
   useEffect(() => {
     if (!user) {
       navigate("/auth");
       return;
     }
-    fetchProfile();
-    fetchSavedProperties();
-  }, [user, navigate]);
+    if (!initialDataLoaded) {
+      fetchProfile();
+      fetchSavedProperties();
+      setInitialDataLoaded(true);
+    }
+  }, [user, navigate, initialDataLoaded]);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -351,7 +356,7 @@ const Profile = () => {
             </Button>
           </div>
 
-          <Tabs value={defaultTab} onValueChange={(value) => setSearchParams({ tab: value })} className="space-y-6">
+          <Tabs value={currentTab} onValueChange={(value) => setSearchParams({ tab: value })} className="space-y-6">
             <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>

@@ -24,8 +24,8 @@ const PropertyImageGallery = ({ images, title }: PropertyImageGalleryProps) => {
       return "/placeholder.svg";
     }
 
-    // If it's already a full URL, return it
-    if (imageUrl.startsWith('http')) {
+    // If it's already a full URL (http or https), return it directly
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
     }
 
