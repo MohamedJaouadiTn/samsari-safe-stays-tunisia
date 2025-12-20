@@ -9,12 +9,33 @@ import ProfileDropdown from "./ProfileDropdown";
 import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { supabase } from "@/integrations/supabase/client";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasProperties, setHasProperties] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { unreadCount, markAllAsRead } = useUnreadMessages();
+
+  useEffect(() => {
+    if (user) {
+      checkUserProperties();
+    } else {
+      setHasProperties(false);
+    }
+  }, [user]);
+
+  const checkUserProperties = async () => {
+    if (!user) return;
+    
+    const { count } = await supabase
+      .from("properties")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", user.id);
+    
+    setHasProperties((count || 0) > 0);
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -46,8 +67,8 @@ const Header = () => {
             <Link to="/help" className="text-gray-700 hover:text-primary transition-colors">
               Help
             </Link>
-            <Link to="/become-host" className="text-gray-700 hover:text-primary transition-colors">
-              Become a Host
+            <Link to={hasProperties ? "/host/onboarding" : "/become-host"} className="text-gray-700 hover:text-primary transition-colors">
+              {hasProperties ? "Host Another Property" : "Become a Host"}
             </Link>
           </nav>
 
@@ -117,11 +138,11 @@ const Header = () => {
                 Help
               </Link>
               <Link 
-                to="/become-host" 
+                to={hasProperties ? "/host/onboarding" : "/become-host"} 
                 className="text-gray-700 hover:text-primary transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Become a Host
+                {hasProperties ? "Host Another Property" : "Become a Host"}
               </Link>
               <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
                 <LanguageSelector />

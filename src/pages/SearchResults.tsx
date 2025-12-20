@@ -480,7 +480,7 @@ const SearchResults = () => {
                               </Badge>
                             )}
                           </div>
-                          <Button onClick={() => navigate(`/property/${property.id}`)}>
+                          <Button onClick={() => navigate(`/p/${(property as any).short_code || property.id}`)}>
                             View Details
                           </Button>
                         </div>

@@ -37,6 +37,7 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/p/:shortCode" element={<PropertyDetails />} />
                 <Route path="/property/:id" element={<PropertyDetails />} />
                 <Route path="/booking/:id" element={<BookingConfirmation />} />
                 <Route path="/search" element={<SearchResults />} />

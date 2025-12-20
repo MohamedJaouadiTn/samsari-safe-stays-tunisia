@@ -35,11 +35,11 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">{t('footer.quick_links')}</h4>
             <ul className="space-y-2 text-sm text-muted">
-              <li><a href="#" className="hover:text-primary transition-colors">{t('header.explore')}</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">{t('header.become_host')}</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">{t('header.safety')}</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
+              <li><a href="/search" className="hover:text-primary transition-colors">{t('header.explore')}</a></li>
+              <li><a href="/become-host" className="hover:text-primary transition-colors">{t('header.become_host')}</a></li>
+              <li><a href="/safety" className="hover:text-primary transition-colors">{t('header.safety')}</a></li>
+              <li><a href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms" className="hover:text-primary transition-colors">Terms of Service</a></li>
             </ul>
           </div>
           
