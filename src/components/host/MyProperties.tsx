@@ -172,8 +172,9 @@ const MyProperties: React.FC = () => {
     navigate(`/host/edit-property/${propertyId}`);
   };
 
-  const viewProperty = (propertyId: string) => {
-    navigate(`/property/${propertyId}`);
+  const viewProperty = (property: Property) => {
+    const shortCode = (property as any).short_code;
+    navigate(shortCode ? `/p/${shortCode}` : `/property/${property.id}`);
   };
 
   const createNewProperty = () => {
@@ -329,7 +330,7 @@ const MyProperties: React.FC = () => {
             <Button 
               variant="default" 
               size="sm"
-              onClick={() => viewProperty(property.id)}
+              onClick={() => viewProperty(property)}
             >
               <ExternalLink className="h-4 w-4 mr-1" /> View
             </Button>

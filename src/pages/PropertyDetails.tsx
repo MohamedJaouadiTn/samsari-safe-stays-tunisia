@@ -22,7 +22,7 @@ import PropertySharingMeta from "@/components/property/PropertySharingMeta";
 type Property = Tables<"properties">;
 
 const PropertyDetails = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, shortCode } = useParams<{ id?: string; shortCode?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [property, setProperty] = useState<Property | null>(null);
@@ -30,10 +30,10 @@ const PropertyDetails = () => {
   const [propertyStatus, setPropertyStatus] = useState<string>("Loading...");
 
   useEffect(() => {
-    if (id) {
+    if (id || shortCode) {
       fetchProperty();
     }
-  }, [id]);
+  }, [id, shortCode]);
 
   useEffect(() => {
     if (property) {
@@ -44,13 +44,20 @@ const PropertyDetails = () => {
   const fetchProperty = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("properties")
         .select("*")
-        .eq("id", id)
         .eq("is_public", true)
-        .eq("status", "published")
-        .single();
+        .eq("status", "published");
+      
+      // Query by short_code or id
+      if (shortCode) {
+        query = query.eq("short_code", shortCode);
+      } else if (id) {
+        query = query.eq("id", id);
+      }
+      
+      const { data, error } = await query.single();
 
       if (error) {
         console.error("Error fetching property:", error);

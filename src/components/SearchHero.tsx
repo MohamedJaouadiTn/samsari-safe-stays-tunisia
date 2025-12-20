@@ -126,14 +126,24 @@ const SearchHero = () => {
               </div>
             </div>
             
-            <Button 
-              onClick={handleSearch}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-              size="lg"
-            >
-              <Search className="w-5 h-5 mr-2" />
-              Search Properties
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={handleSearch}
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                size="lg"
+              >
+                <Search className="w-5 h-5 mr-2" />
+                Search Properties
+              </Button>
+              <Button 
+                onClick={() => navigate('/search')}
+                variant="outline"
+                size="lg"
+                className="flex-1"
+              >
+                Browse All Properties
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

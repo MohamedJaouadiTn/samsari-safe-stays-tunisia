@@ -336,6 +336,7 @@ export type Database = {
           price_per_night: number
           property_type: string
           safety_features: Json | null
+          short_code: string | null
           sleeping_arrangements: Json | null
           status: string | null
           title: string
@@ -371,6 +372,7 @@ export type Database = {
           price_per_night: number
           property_type: string
           safety_features?: Json | null
+          short_code?: string | null
           sleeping_arrangements?: Json | null
           status?: string | null
           title: string
@@ -406,6 +408,7 @@ export type Database = {
           price_per_night?: number
           property_type?: string
           safety_features?: Json | null
+          short_code?: string | null
           sleeping_arrangements?: Json | null
           status?: string | null
           title?: string
@@ -610,6 +613,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_property_type_digit: { Args: { p_type: string }; Returns: number }
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { user_email: string }; Returns: boolean }
