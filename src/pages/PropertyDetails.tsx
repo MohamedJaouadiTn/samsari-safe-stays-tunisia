@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { 
   MapPin, Users, Bed, Bath, ArrowLeft, Share2, 
   CheckCircle, Wifi, Car, Coffee, Tv, AirVent, Waves, Shield,
-  AlarmSmoke, FireExtinguisher, Heart
+  AlarmSmoke, FireExtinguisher, Heart, Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,8 @@ import PropertyImageGallery from "@/components/property/PropertyImageGallery";
 import PropertyReviews from "@/components/property/PropertyReviews";
 import PropertyBookingCard from "@/components/property/PropertyBookingCard";
 import PropertySharingMeta from "@/components/property/PropertySharingMeta";
+import { usePropertyTranslation } from "@/hooks/usePropertyTranslation";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Property = Tables<"properties">;
 
@@ -28,6 +30,8 @@ const PropertyDetails = () => {
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [propertyStatus, setPropertyStatus] = useState<string>("Loading...");
+  const { translatedContent, isTranslating } = usePropertyTranslation(property);
+  const { language } = useLanguage();
 
   useEffect(() => {
     if (id || shortCode) {
@@ -270,7 +274,14 @@ const PropertyDetails = () => {
           </Button>
           
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">{property.title}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">
+                {translatedContent?.title || property.title}
+              </h1>
+              {isTranslating && (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <Badge className={getStatusColor(propertyStatus)}>
                 {propertyStatus}
@@ -320,7 +331,7 @@ const PropertyDetails = () => {
                 
                 <Badge variant="outline">{property.property_type}</Badge>
                 
-                <p className="text-muted-foreground">{property.description}</p>
+                <p className="text-muted-foreground">{translatedContent?.description || property.description}</p>
 
                 {/* Display minimum stay */}
                 {property.minimum_stay && property.minimum_stay > 1 && (
@@ -428,13 +439,13 @@ const PropertyDetails = () => {
             )}
 
             {/* House Rules */}
-            {property.house_rules && (
+            {(property.house_rules || translatedContent?.house_rules) && (
               <Card>
                 <CardHeader>
                   <CardTitle>House Rules</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm whitespace-pre-line">{property.house_rules}</p>
+                  <p className="text-sm whitespace-pre-line">{translatedContent?.house_rules || property.house_rules}</p>
                 </CardContent>
               </Card>
             )}
