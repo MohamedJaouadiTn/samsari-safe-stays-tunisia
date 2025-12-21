@@ -1,1 +1,10 @@
 project_id = "gigzciepwjrwbljdnixh"
+
+[functions.get-signed-url]
+verify_jwt = true
+
+[functions.upload-to-r2]
+verify_jwt = true
+
+[functions.translate]
+verify_jwt = false

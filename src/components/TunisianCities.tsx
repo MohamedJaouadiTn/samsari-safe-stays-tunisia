@@ -1,73 +1,76 @@
 
 export const tunisianCities = [
-  // Tunis
-  { governorate: "Tunis", cities: ["Tunis", "La Marsa", "Sidi Bou Said", "Carthage", "Ariana", "Manouba", "Ben Arous"] },
+  // 1. Ariana
+  { governorate: "Ariana", cities: ["Ariana", "Ettadhamen", "Kalaat El Andalous", "Mnihla", "Raoued", "Sidi Thabet", "La Soukra"] },
   
-  // Sfax
-  { governorate: "Sfax", cities: ["Sfax", "Sakiet Ezzit", "Sakiet Eddayer", "Chihia", "Menzel Chaker", "Ghraiba", "Agareb"] },
+  // 2. Béja
+  { governorate: "Béja", cities: ["Amdoun", "Béja North", "Béja South", "Goubellat", "Medjez El Bab", "Nefza", "Teboursouk", "Testour", "Thibar"] },
   
-  // Sousse
-  { governorate: "Sousse", cities: ["Sousse", "Monastir", "Mahdia", "Ksibet Sousse", "Kalaa Kebira", "Kalaa Sghira", "Msaken"] },
+  // 3. Ben Arous
+  { governorate: "Ben Arous", cities: ["Ben Arous", "Boumhel", "El Mourouj", "Ezzahra", "Fouchana", "Hammam Chott", "Hammam Lif", "M'Hamdia", "Medina Jedida", "Megrine", "Mornag", "Rades"] },
   
-  // Kairouan
-  { governorate: "Kairouan", cities: ["Kairouan", "Sbikha", "Oueslatia", "Haffouz", "Alaa", "Hajeb El Ayoun", "Nasrallah"] },
+  // 4. Bizerte
+  { governorate: "Bizerte", cities: ["Bizerte North", "Bizerte South", "Djoumime", "El Alia", "Ghar El Melh", "Ghezala", "Mateur", "Menzel Bourguiba", "Menzel Jemil", "Ras Jebel", "Sejenane", "Tinja", "Utique", "Zarzouna"] },
   
-  // Bizerte
-  { governorate: "Bizerte", cities: ["Bizerte", "Menzel Bourguiba", "Mateur", "Ras Jebel", "Sejnane", "Joumine", "Tinja"] },
+  // 5. Gabès
+  { governorate: "Gabès", cities: ["Gabes Medina", "Gabes West", "Gabes South", "Ghannouch", "Hamma", "Mareth", "Matmata", "New Matmata", "Menzel Habib", "Metouia"] },
   
-  // Gabes
-  { governorate: "Gabes", cities: ["Gabes", "Mareth", "Metouia", "Ghannouch", "El Hamma", "Matmata", "Nouvelle Matmata"] },
+  // 6. Gafsa
+  { governorate: "Gafsa", cities: ["Belkhir", "Gafsa North", "Gafsa South", "Guetar", "Ksar", "Mdhilla", "Metlaoui", "Oum Larais", "Redeyef", "Sened", "Sidi Aich"] },
   
-  // Ariana
-  { governorate: "Ariana", cities: ["Ariana", "Ettadhamen", "Raoued", "Kalaat el Andalous", "Sidi Thabet", "Mnihla"] },
+  // 7. Jendouba
+  { governorate: "Jendouba", cities: ["An Draham", "Balta", "Bousalem", "Fernana", "Ghardimaou", "Jendouba", "Jendouba North", "Oued Mliz", "Tabarka"] },
   
-  // Gafsa
-  { governorate: "Gafsa", cities: ["Gafsa", "Metlaoui", "Redeyef", "Moularès", "Sened", "Belkhir", "Ksar"] },
+  // 8. Kairouan
+  { governorate: "Kairouan", cities: ["Alaa", "Bouhajla", "Chebika", "Chrarda", "Haffouz", "Hajeb El Ayoun", "Kairouan North", "Kairouan South", "Nasrallah", "Oueslatia", "Sbikha"] },
   
-  // Monastir
-  { governorate: "Monastir", cities: ["Monastir", "Ksar Hellal", "Moknine", "Jemmal", "Teboulba", "Sahline", "Sayada"] },
+  // 9. Kasserine
+  { governorate: "Kasserine", cities: ["Ayoun", "Ezzouhour", "Feriana", "Foussana", "Hassi El Ferid", "Hidra", "Jedeliane", "Kasserine North", "Kasserine South", "Majel Belabbes", "Sbeitla", "Sbiba", "Thala"] },
   
-  // Ben Arous
-  { governorate: "Ben Arous", cities: ["Ben Arous", "Ezzahra", "Hammam Lif", "Hammam Chott", "Bou Mhel el Bassatine", "El Mourouj", "Fouchana"] },
+  // 10. Kebili
+  { governorate: "Kebili", cities: ["Douz North", "Douz South", "Faouar", "Kebili North", "Kebili South", "Souk El Ahed"] },
   
-  // Kasserine
-  { governorate: "Kasserine", cities: ["Kasserine", "Feriana", "Foussana", "Sbeitla", "Jedelienne", "Thala", "Haydra"] },
+  // 11. Kef (El Kef)
+  { governorate: "Kef", cities: ["Dahmani", "Es Sers", "Jerissa", "Kalaa Khasbat", "Kalaat Senane", "Kef East", "Kef West", "Ksour", "Nebeur", "Sakiet Sidi Youssef", "Tajerouine"] },
   
-  // Sidi Bouzid
-  { governorate: "Sidi Bouzid", cities: ["Sidi Bouzid", "Jelma", "Cebbala Ouled Asker", "Bir El Hafey", "Sidi Ali Ben Aoun", "Menzel Bouzaiane"] },
+  // 12. Mahdia
+  { governorate: "Mahdia", cities: ["Boumerdes", "Chebba", "Chorbane", "El Djem", "Hbira", "Ksour Essef", "Mahdia", "Melloulech", "Ouled Chamekh", "Sidi Alouane", "Souassi"] },
   
-  // Mahdia
-  { governorate: "Mahdia", cities: ["Mahdia", "Ksour Essef", "Chorbane", "Hebira", "Melloulèche", "Ouled Chamekh", "Bou Merdes"] },
+  // 13. Manouba (La Manouba)
+  { governorate: "Manouba", cities: ["Borj El Amri", "Douar Hicher", "El Battan", "Djedeida", "La Manouba", "Mornaguia", "Oued Ellil", "Tebourba"] },
   
-  // Medenine
-  { governorate: "Medenine", cities: ["Medenine", "Zarzis", "Houmt Souk", "Ajim", "Midoun", "Ben Gardane", "Sidi Makhlouf"] },
+  // 14. Médenine
+  { governorate: "Médenine", cities: ["Ben Guerdane", "Beni Khedache", "Djerba Ajim", "Djerba Midoun", "Djerba Houmt Souk", "Medenine North", "Medenine South", "Sidi Makhlouf", "Zarzis"] },
   
-  // Nabeul
-  { governorate: "Nabeul", cities: ["Nabeul", "Hammamet", "Kelibia", "Menzel Temime", "Korba", "Grombalia", "Soliman"] },
+  // 15. Monastir
+  { governorate: "Monastir", cities: ["Bekalta", "Bembla", "Beni Hassen", "Jammel", "Ksar Hellal", "Ksibet El Mediouni", "Moknine", "Monastir", "Ouerdanine", "Sahline", "Sayada-Lamta-Bou Hjar", "Teboulba", "Zeramdine"] },
   
-  // Tataouine
-  { governorate: "Tataouine", cities: ["Tataouine", "Ghomrassen", "Bir Lahmar", "Remada", "Dehiba", "Smâr"] },
+  // 16. Nabeul
+  { governorate: "Nabeul", cities: ["Beni Khalled", "Beni Khiar", "Bou Argoub", "Dar Chaabane El Fehri", "El Mida", "Grombalia", "Hammam Ghezaz", "Hammamet", "Haouaria", "Kelibia", "Korba", "Menzel Bouzelfa", "Menzel Temime", "Nabeul", "Soliman", "Takelsa"] },
   
-  // Beja
-  { governorate: "Beja", cities: ["Beja", "Medjez el Bab", "Goubellat", "Teboursouk", "Nefza", "Amdoun", "Testour"] },
+  // 17. Sfax
+  { governorate: "Sfax", cities: ["Agareb", "Bir Ali Ben Khelifa", "El Amra", "El Ghraiba", "Hencha", "Jebeniana", "Kerkennah", "Mahres", "Menzel Chaker", "Sakiet Eddaier", "Sakiet Ezzit", "Sfax Medina", "Sfax West", "Sfax South", "Skhira"] },
   
-  // Jendouba
-  { governorate: "Jendouba", cities: ["Jendouba", "Tabarka", "Ain Draham", "Fernana", "Bou Salem", "Ghardimaou", "Oued Meliz"] },
+  // 18. Sidi Bouzid
+  { governorate: "Sidi Bouzid", cities: ["Bir El Hfay", "Jelma", "Mazzouna", "Meknassi", "Menzel Bouzaiene", "Ouled Haffouz", "Regueb", "Sabalat Ouled Asker", "Sidi Ali Ben Aoun", "Sidi Bouzid East", "Sidi Bouzid West", "Souk Jedid"] },
   
-  // Zaghouan
-  { governorate: "Zaghouan", cities: ["Zaghouan", "El Fahs", "Nadhour", "Saouaf", "Bir Mcherga", "Djebel Oust"] },
+  // 19. Siliana
+  { governorate: "Siliana", cities: ["Bargou", "Bouarada", "Bourouis", "El Krib", "Gaafour", "Kesra", "Makthar", "Rouhia", "Siliana North", "Siliana South"] },
   
-  // Siliana
-  { governorate: "Siliana", cities: ["Siliana", "Bou Arada", "Gaâfour", "El Krib", "Sidi Bou Rouis", "Makthar", "Rouhia"] },
+  // 20. Sousse
+  { governorate: "Sousse", cities: ["Akouda", "Bouficha", "Enfidha", "Hammam Sousse", "Hergla", "Kalâa Kebira", "Kalâa Sghira", "Kondar", "M'Saken", "Sidi Bou Ali", "Sidi El Heni", "Sousse Jaouhara", "Sousse Medina", "Sousse Riadh", "Sousse Sidi Abdelhamid"] },
   
-  // Kef
-  { governorate: "Kef", cities: ["Kef", "Dahmani", "Sers", "Tajerouine", "Nebeur", "Kalaat Khasba", "Jérissa"] },
+  // 21. Tataouine
+  { governorate: "Tataouine", cities: ["Bir Lahmar", "Dehiba", "Ghomrassen", "Remada", "Samar", "Tataouine North", "Tataouine South"] },
   
-  // Tozeur
-  { governorate: "Tozeur", cities: ["Tozeur", "Nefta", "Degache", "Tameghza", "Chebika", "Hazoua"] },
+  // 22. Tozeur
+  { governorate: "Tozeur", cities: ["Degueche", "Hazoua", "Nefta", "Tamaghza", "Tozeur"] },
   
-  // Kebili
-  { governorate: "Kebili", cities: ["Kebili", "Douz", "Souk Lahad", "Faouar", "Blidet", "Nouail"] }
+  // 23. Tunis (Capital Region)
+  { governorate: "Tunis", cities: ["Bab Bhar", "Bab Souika", "Bardo", "Bouhaira", "Carthage", "Cité El Khadra", "El Menzah", "El Ouardia", "El Tahrir", "Ezzouhour", "Hrairia", "Jebel Jelloud", "Kabaria", "La Goulette", "La Marsa", "Le Kram", "Medina", "Omrane", "Omrane Supérieur", "Sidi El Bechir", "Sidi Hassine", "Sijoumi"] },
+  
+  // 24. Zaghouan
+  { governorate: "Zaghouan", cities: ["Bir Mchergua", "Fahs", "Nadhour", "Saouaf", "Zaghouan"] }
 ];
 
 export const getAllCities = () => {
@@ -76,8 +79,19 @@ export const getAllCities = () => {
   );
 };
 
+export const getCitiesByGovernorate = (governorate: string) => {
+  const gov = tunisianCities.find(g => 
+    g.governorate.toLowerCase() === governorate.toLowerCase()
+  );
+  return gov ? gov.cities : [];
+};
+
 export const getGovernoratesByCity = (cityName: string) => {
   return tunisianCities.find(gov => 
     gov.cities.some(city => city.toLowerCase() === cityName.toLowerCase())
   )?.governorate || "";
+};
+
+export const getAllGovernorates = () => {
+  return tunisianCities.map(gov => gov.governorate);
 };
