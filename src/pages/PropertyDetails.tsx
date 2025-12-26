@@ -130,10 +130,10 @@ const PropertyDetails = () => {
   const shareProperty = async () => {
     if (!property) return;
     
-    // Use edge function URL for sharing - serves proper OG tags to social media crawlers
-    const identifier = property.short_code || property.id;
-    const queryParam = property.short_code ? `code=${identifier}` : `id=${identifier}`;
-    const shareUrl = `https://gigzciepwjrwbljdnixh.supabase.co/functions/v1/og-image?${queryParam}&siteUrl=${encodeURIComponent(window.location.origin)}`;
+    // Use clean app URL for sharing
+    const shareUrl = property.short_code 
+      ? `${window.location.origin}/p/${property.short_code}`
+      : `${window.location.origin}/property/${property.id}`;
     
     const shareTitle = `${property.title} - ${property.price_per_night} TND per night`;
     const shareText = `Check out this beautiful ${property.property_type} in ${property.city}, ${property.governorate}`;
