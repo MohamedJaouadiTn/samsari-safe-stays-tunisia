@@ -11,7 +11,8 @@ const ALLOWED_CONTENT_TYPES = [
   'image/jpeg',
   'image/jpg',
   'image/png',
-  'image/webp'
+  'image/webp',
+  'image/avif'
 ];
 
 // Allowed upload paths
@@ -97,7 +98,7 @@ serve(async (req) => {
     if (!contentType || !ALLOWED_CONTENT_TYPES.includes(contentType.toLowerCase())) {
       console.error('Invalid content type:', contentType);
       return new Response(
-        JSON.stringify({ error: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.' }),
+        JSON.stringify({ error: 'Invalid file type. Only JPEG, PNG, WebP, and AVIF images are allowed.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
