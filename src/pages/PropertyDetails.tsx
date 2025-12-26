@@ -50,8 +50,41 @@ const PropertyDetails = () => {
   useEffect(() => {
     if (property) {
       checkPropertyStatus();
+      trackPropertyView();
     }
   }, [property]);
+
+  const trackPropertyView = async () => {
+    if (!property) return;
+    
+    // Generate or get session ID from sessionStorage
+    let sessionId = sessionStorage.getItem('session_id');
+    if (!sessionId) {
+      sessionId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      sessionStorage.setItem('session_id', sessionId);
+    }
+    
+    // Check if we already tracked this property in this session
+    const viewedKey = `viewed_${property.id}`;
+    if (sessionStorage.getItem(viewedKey)) {
+      return; // Already tracked this property in this session
+    }
+    
+    try {
+      await supabase.from('property_views').insert({
+        property_id: property.id,
+        viewer_id: user?.id || null,
+        session_id: sessionId,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent || null,
+      });
+      
+      // Mark as viewed in this session
+      sessionStorage.setItem(viewedKey, 'true');
+    } catch (error) {
+      console.error('Error tracking view:', error);
+    }
+  };
 
   const fetchProperty = async () => {
     setLoading(true);
