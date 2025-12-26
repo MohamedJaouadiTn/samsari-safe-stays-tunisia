@@ -439,40 +439,7 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="properties">
-              <div className="space-y-6">
-                {!profile.is_host && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Home className="h-5 w-5" />
-                        <span>Become a Host</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <p className="text-muted-foreground">
-                          Become a host and start earning by renting out your property.
-                        </p>
-                        <Button onClick={becomeHost} disabled={loading}>
-                          {loading ? "Processing..." : "Become a Host"}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Package className="h-5 w-5" />
-                      <span>My Properties</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <MyProperties />
-                  </CardContent>
-                </Card>
-              </div>
+              <MyProperties onBecomeHost={becomeHost} isBecomingHost={loading} />
             </TabsContent>
 
             <TabsContent value="saved">
