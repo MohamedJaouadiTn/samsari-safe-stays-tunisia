@@ -21,6 +21,7 @@ import Privacy from "./pages/Privacy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 import Payment from "./pages/Payment";
+import PropertyAnalyticsPage from "./pages/PropertyAnalyticsPage";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ function App() {
                 <Route path="/search" element={<SearchResults />} />
                 <Route path="/host/onboarding" element={<HostOnboarding />} />
                 <Route path="/host/edit-property/:propertyId" element={<HostOnboarding />} />
+                <Route path="/host/property/:propertyId/analytics" element={<PropertyAnalyticsPage />} />
                 <Route path="/become-host" element={<BecomeHost />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/help" element={<Help />} />

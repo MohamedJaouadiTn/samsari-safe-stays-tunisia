@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Edit, Trash2, Plus, Calendar, ExternalLink, Wand2 } from 'lucide-react';
+import { Eye, EyeOff, Edit, Trash2, Plus, Calendar, ExternalLink, Wand2, BarChart3 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,11 +62,11 @@ Just 10 minutes from Tunis-Carthage Airport — perfect for early flights or lat
   currency: "TND",
   house_rules: "no smoking inside house alarm",
   photos: [
-    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/exterior.jpg" },
-    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/kitchen.jpg" },
-    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/bathroom.jpg" },
-    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/living-room.jpg" },
-    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/bedroom.jpg" }
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/property-photos/f1d2d430-4942-4446-9633-f145708e4b79/1766763160094-kf1297l4qj9.avif", type: "exterior" },
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/property-photos/f1d2d430-4942-4446-9633-f145708e4b79/1766763164720-e05634um6m8.avif", type: "kitchen" },
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/property-photos/f1d2d430-4942-4446-9633-f145708e4b79/1766763171176-yd9j55exp6f.avif", type: "bathroom" },
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/property-photos/f1d2d430-4942-4446-9633-f145708e4b79/1766763177392-8z5nwdw7us.avif", type: "living_room" },
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/property-photos/f1d2d430-4942-4446-9633-f145708e4b79/1766763181208-50al4ekuh89.avif", type: "bedroom_1" }
   ],
   amenities: ["wifi", "kitchen", "tv", "parking", "air_conditioning"],
   safety_features: {
@@ -231,6 +231,10 @@ const MyProperties: React.FC = () => {
   const viewProperty = (property: Property) => {
     const shortCode = (property as any).short_code;
     navigate(shortCode ? `/p/${shortCode}` : `/property/${property.id}`);
+  };
+
+  const manageProperty = (propertyId: string) => {
+    navigate(`/host/property/${propertyId}/analytics`);
   };
 
   const createNewProperty = () => {
@@ -439,13 +443,22 @@ const MyProperties: React.FC = () => {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={() => viewProperty(property)}
-            >
-              <ExternalLink className="h-4 w-4 mr-1" /> View
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => manageProperty(property.id)}
+              >
+                <BarChart3 className="h-4 w-4 mr-1" /> Manage
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => viewProperty(property)}
+              >
+                <ExternalLink className="h-4 w-4 mr-1" /> View
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       ))}
