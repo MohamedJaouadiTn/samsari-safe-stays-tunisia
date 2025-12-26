@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { 
   MapPin, Users, Bed, Bath, ArrowLeft, Share2, 
   CheckCircle, Wifi, Car, Coffee, Tv, AirVent, Waves, Shield,
-  AlarmSmoke, FireExtinguisher, Heart, Loader2
+  AlarmSmoke, FireExtinguisher, Heart, Loader2, Pencil
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,20 +18,28 @@ import PropertyImageGallery from "@/components/property/PropertyImageGallery";
 import PropertyReviews from "@/components/property/PropertyReviews";
 import PropertyBookingCard from "@/components/property/PropertyBookingCard";
 import PropertySharingMeta from "@/components/property/PropertySharingMeta";
+import AdminPropertyEditor from "@/components/admin/AdminPropertyEditor";
 import { usePropertyTranslation } from "@/hooks/usePropertyTranslation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Property = Tables<"properties">;
+
+const ADMIN_EMAIL = "samsari.app@gmail.com";
 
 const PropertyDetails = () => {
   const { id, shortCode } = useParams<{ id?: string; shortCode?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [propertyStatus, setPropertyStatus] = useState<string>("Loading...");
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const { translatedContent, isTranslating } = usePropertyTranslation(property);
   const { language } = useLanguage();
+  
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     if (id || shortCode) {
@@ -130,10 +138,11 @@ const PropertyDetails = () => {
   const shareProperty = async () => {
     if (!property) return;
     
-    // Use clean app URL for sharing
-    const shareUrl = property.short_code 
-      ? `${window.location.origin}/p/${property.short_code}`
-      : `${window.location.origin}/property/${property.id}`;
+    // Use edge function URL for sharing - serves proper OG tags to social media crawlers
+    // Real users get instant JavaScript redirect to the clean app URL
+    const identifier = property.short_code || property.id;
+    const queryParam = property.short_code ? `code=${identifier}` : `id=${identifier}`;
+    const shareUrl = `https://gigzciepwjrwbljdnixh.supabase.co/functions/v1/og-image?${queryParam}&siteUrl=${encodeURIComponent(window.location.origin)}`;
     
     const shareTitle = `${property.title} - ${property.price_per_night} TND per night`;
     const shareText = `Check out this beautiful ${property.property_type} in ${property.city}, ${property.governorate}`;
@@ -285,6 +294,12 @@ const PropertyDetails = () => {
               <Badge className={getStatusColor(propertyStatus)}>
                 {propertyStatus}
               </Badge>
+              {isAdmin && (
+                <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={shareProperty}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
@@ -483,6 +498,16 @@ const PropertyDetails = () => {
       </main>
 
       <Footer />
+      
+      {/* Admin Property Editor Dialog */}
+      {isAdmin && property && (
+        <AdminPropertyEditor
+          property={property}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          onPropertyUpdated={fetchProperty}
+        />
+      )}
     </div>
   );
 };
