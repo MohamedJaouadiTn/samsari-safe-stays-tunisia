@@ -5,27 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Social media crawler user agents
-const crawlerAgents = [
-  'facebookexternalhit',
-  'Facebot',
-  'Twitterbot',
-  'WhatsApp',
-  'LinkedInBot',
-  'Pinterest',
-  'Slackbot',
-  'TelegramBot',
-  'Discordbot',
-  'Googlebot',
-  'bingbot',
-];
-
-function isCrawler(userAgent: string): boolean {
-  return crawlerAgents.some(agent => 
-    userAgent.toLowerCase().includes(agent.toLowerCase())
-  );
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -85,7 +64,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build property URL
+    // Build property URL - always use the actual app URL for redirect
     const propertyUrl = shortCode 
       ? `${siteUrl}/p/${shortCode}`
       : `${siteUrl}/property/${propertyId}`;
@@ -94,12 +73,10 @@ Deno.serve(async (req) => {
     const title = `${property.title} - ${property.price_per_night} TND/night in ${property.city}`;
     const description = `${property.max_guests} guests · ${property.bedrooms} bedroom${property.bedrooms > 1 ? 's' : ''} · ${property.bathrooms} bathroom${property.bathrooms > 1 ? 's' : ''} in ${property.city}, ${property.governorate}. ${(property.description || '').substring(0, 100)}...`;
 
-    // Return OG meta data as JSON (for the frontend to use)
-    const userAgent = req.headers.get('user-agent') || '';
-    
-    if (isCrawler(userAgent)) {
-      // Return HTML with meta tags for crawlers
-      const html = `<!DOCTYPE html>
+    console.log('Serving OG tags for property:', property.title, 'Image:', imageUrl);
+
+    // Always return HTML with OG tags - JavaScript redirect handles real users
+    const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -124,37 +101,16 @@ Deno.serve(async (req) => {
   <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${imageUrl}">
   
-  <!-- Redirect to actual page -->
-  <meta http-equiv="refresh" content="0;url=${propertyUrl}">
+  <!-- Instant redirect for real users (crawlers don't execute JS) -->
+  <script>window.location.replace("${propertyUrl}");</script>
 </head>
 <body>
   <p>Redirecting to <a href="${propertyUrl}">${property.title}</a>...</p>
 </body>
 </html>`;
 
-      return new Response(html, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
-      });
-    }
-
-    // Return JSON for API calls
-    return new Response(JSON.stringify({
-      title,
-      description,
-      imageUrl,
-      propertyUrl,
-      property: {
-        id: property.id,
-        title: property.title,
-        city: property.city,
-        governorate: property.governorate,
-        price_per_night: property.price_per_night,
-        bedrooms: property.bedrooms,
-        bathrooms: property.bathrooms,
-        max_guests: property.max_guests,
-      }
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(html, {
+      headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
     });
 
   } catch (error) {

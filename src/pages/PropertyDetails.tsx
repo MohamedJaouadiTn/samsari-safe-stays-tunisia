@@ -130,15 +130,17 @@ const PropertyDetails = () => {
   const shareProperty = async () => {
     if (!property) return;
     
-    const shareUrl = window.location.href;
+    // Use edge function URL for sharing - serves proper OG tags to social media crawlers
+    const identifier = property.short_code || property.id;
+    const queryParam = property.short_code ? `code=${identifier}` : `id=${identifier}`;
+    const shareUrl = `https://gigzciepwjrwbljdnixh.supabase.co/functions/v1/og-image?${queryParam}&siteUrl=${encodeURIComponent(window.location.origin)}`;
+    
     const shareTitle = `${property.title} - ${property.price_per_night} TND per night`;
     const shareText = `Check out this beautiful ${property.property_type} in ${property.city}, ${property.governorate}`;
     
     try {
-      // First try copying to clipboard as a fallback
       await navigator.clipboard.writeText(shareUrl);
       
-      // Then try the Share API if available
       if (navigator.share) {
         try {
           await navigator.share({
@@ -152,7 +154,6 @@ const PropertyDetails = () => {
             description: "Property shared with others"
           });
         } catch (error) {
-          // If share API fails but we already copied to clipboard, show that message
           if ((error as Error).name !== 'AbortError') {
             toast({
               title: "Link Copied",
@@ -161,14 +162,12 @@ const PropertyDetails = () => {
           }
         }
       } else {
-        // If Share API is not available, we already copied to clipboard
         toast({
           title: "Link Copied",
           description: "Property link copied to clipboard"
         });
       }
     } catch (error) {
-      // If both methods fail
       toast({
         title: "Sharing failed",
         description: "Could not share the property",
