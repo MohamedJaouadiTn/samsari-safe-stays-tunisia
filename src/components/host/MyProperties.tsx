@@ -79,7 +79,12 @@ Just 10 minutes from Tunis-Carthage Airport — perfect for early flights or lat
   status: "published"
 };
 
-const MyProperties: React.FC = () => {
+interface MyPropertiesProps {
+  onBecomeHost?: () => void;
+  isBecomingHost?: boolean;
+}
+
+const MyProperties: React.FC<MyPropertiesProps> = ({ onBecomeHost, isBecomingHost }) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [creatingDemo, setCreatingDemo] = useState(false);
@@ -314,15 +319,17 @@ const MyProperties: React.FC = () => {
     return (
       <Card className="text-center p-6">
         <CardHeader>
-          <CardTitle>No Properties Yet</CardTitle>
+          <CardTitle className="flex items-center justify-center space-x-2">
+            <Plus className="h-5 w-5" />
+            <span>Become a Host</span>
+          </CardTitle>
           <CardDescription>
-            You haven't created any properties yet. Get started by creating your first listing.
+            Become a host and start earning by renting out your property.
           </CardDescription>
         </CardHeader>
         <CardFooter className="justify-center pt-4">
-          <Button onClick={createNewProperty}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Property
+          <Button onClick={onBecomeHost || createNewProperty} disabled={isBecomingHost}>
+            {isBecomingHost ? "Processing..." : "Become a Host"}
           </Button>
         </CardFooter>
       </Card>
