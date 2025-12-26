@@ -67,9 +67,20 @@ const Header = () => {
             <Link to="/help" className="text-gray-700 hover:text-primary transition-colors">
               Help
             </Link>
-            <Link to={hasProperties ? "/host/onboarding" : "/become-host"} className="text-gray-700 hover:text-primary transition-colors">
-              {hasProperties ? "Host Another Property" : "Become a Host"}
-            </Link>
+            {hasProperties ? (
+              <>
+                <Link to="/profile?tab=properties" className="text-gray-700 hover:text-primary transition-colors">
+                  View Properties
+                </Link>
+                <Link to="/host/onboarding" className="text-gray-700 hover:text-primary transition-colors">
+                  Add New Property
+                </Link>
+              </>
+            ) : (
+              <Link to="/become-host" className="text-gray-700 hover:text-primary transition-colors">
+                Become a Host
+              </Link>
+            )}
           </nav>
 
           {/* Right side buttons */}
@@ -137,13 +148,32 @@ const Header = () => {
               >
                 Help
               </Link>
-              <Link 
-                to={hasProperties ? "/host/onboarding" : "/become-host"} 
-                className="text-gray-700 hover:text-primary transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {hasProperties ? "Host Another Property" : "Become a Host"}
-              </Link>
+              {hasProperties ? (
+                <>
+                  <Link 
+                    to="/profile?tab=properties" 
+                    className="text-gray-700 hover:text-primary transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    View Properties
+                  </Link>
+                  <Link 
+                    to="/host/onboarding" 
+                    className="text-gray-700 hover:text-primary transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Add New Property
+                  </Link>
+                </>
+              ) : (
+                <Link 
+                  to="/become-host" 
+                  className="text-gray-700 hover:text-primary transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Become a Host
+                </Link>
+              )}
               <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
                 <LanguageSelector />
                 {user && (
