@@ -38,6 +38,8 @@ export const usePropertyTranslation = (property: {
 
       try {
         // Combine all text to translate in one request to minimize API calls
+        // Use a unique separator that won't be translated
+        const SEPARATOR = '\n|||SPLIT|||\n';
         const textsToTranslate = [
           property.title,
           property.description || '',
@@ -45,7 +47,7 @@ export const usePropertyTranslation = (property: {
           property.welcome_message || '',
         ].filter(Boolean);
 
-        const combinedText = textsToTranslate.join('\n---SEPARATOR---\n');
+        const combinedText = textsToTranslate.join(SEPARATOR);
 
         const { data, error } = await supabase.functions.invoke('translate', {
           body: {
@@ -67,13 +69,14 @@ export const usePropertyTranslation = (property: {
           return;
         }
 
-        const translatedParts = data.translatedText.split('\n---SEPARATOR---\n');
+        // Split by the separator (handle potential translation of separator)
+        const translatedParts = data.translatedText.split(/\|\|\|SPLIT\|\|\||\|\|\|SÉPARÉ\|\|\||\|\|\|فاصل\|\|\|/i);
 
         setTranslatedContent({
-          title: translatedParts[0] || property.title,
-          description: translatedParts[1] || property.description || '',
-          house_rules: translatedParts[2] || property.house_rules || undefined,
-          welcome_message: translatedParts[3] || property.welcome_message || undefined,
+          title: translatedParts[0]?.trim() || property.title,
+          description: translatedParts[1]?.trim() || property.description || '',
+          house_rules: translatedParts[2]?.trim() || property.house_rules || undefined,
+          welcome_message: translatedParts[3]?.trim() || property.welcome_message || undefined,
         });
       } catch (error) {
         console.error('Translation error:', error);
