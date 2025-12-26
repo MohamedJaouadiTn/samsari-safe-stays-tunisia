@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Edit, Trash2, Plus, Calendar, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, Edit, Trash2, Plus, Calendar, ExternalLink, Wand2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,9 +24,65 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 type Property = Tables<"properties">;
 
+const ADMIN_EMAIL = 'samsari.app@gmail.com';
+
+const DEMO_PROPERTY_TEMPLATE = {
+  title: "Modern Flat | Fast WI-FI | Near Airport and Clinic",
+  description: `🌴 Welcome to your cozy retreat at Marsa 🌴
+
+Just 10 minutes from Tunis-Carthage Airport — perfect for early flights or late arrivals!
+✨ We provide towels and a travel-size toiletry kit for your convenience.
+
+🏠 What you'll find:
+- Fully equipped kitchen
+- High-speed Wi-Fi (great for work or streaming)
+- Smart TV
+- Secure parking on-site
+
+🛏️ One bedroom with a super comfy double bed — sleeps 2 guests perfectly.
+🚿 Brand-new private bathroom.
+
+🚗 The neighborhood is calm, family-friendly, and super close to:
+- Cafés & restaurants
+- Pharmacy and clinic
+- Supermarket`,
+  property_type: "house",
+  governorate: "Tunis",
+  city: "La Marsa",
+  address: "Rue Ibn Khaldoun, La Marsa",
+  bedrooms: 1,
+  bathrooms: 1,
+  max_guests: 4,
+  price_per_night: 120,
+  minimum_stay: 3,
+  check_in_time: "10:00",
+  check_out_time: "12:00",
+  cancellation_policy: "flexible",
+  visitor_policy: "morning_only",
+  currency: "TND",
+  house_rules: "no smoking inside house alarm",
+  photos: [
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/exterior.jpg" },
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/kitchen.jpg" },
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/bathroom.jpg" },
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/living-room.jpg" },
+    { url: "https://pub-fbfee19a9f4f4874bb58350b017e120c.r2.dev/properties/bedroom.jpg" }
+  ],
+  amenities: ["wifi", "kitchen", "tv", "parking", "air_conditioning"],
+  safety_features: {
+    first_aid_kit: true,
+    emergency_exit_plan: true,
+    fire_extinguisher: true,
+    carbon_monoxide_detector: true
+  },
+  is_public: true,
+  status: "published"
+};
+
 const MyProperties: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creatingDemo, setCreatingDemo] = useState(false);
   const [propertyStats, setPropertyStats] = useState<Record<string, { views: number, bookings: number }>>({});
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -181,6 +237,50 @@ const MyProperties: React.FC = () => {
     navigate('/host/onboarding');
   };
 
+  const createDemoProperty = async () => {
+    if (!user) return;
+    
+    setCreatingDemo(true);
+    try {
+      const timestamp = Date.now();
+      const demoTitle = `${DEMO_PROPERTY_TEMPLATE.title} (Demo #${timestamp.toString().slice(-4)})`;
+      
+      const { data, error } = await supabase
+        .from('properties')
+        .insert({
+          ...DEMO_PROPERTY_TEMPLATE,
+          title: demoTitle,
+          host_id: user.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Demo property created",
+        description: `Created: ${demoTitle}`
+      });
+
+      // Refresh the list
+      await fetchProperties();
+      
+      // Navigate to view the new property
+      if (data?.short_code) {
+        navigate(`/p/${data.short_code}`);
+      }
+    } catch (error) {
+      console.error('Error creating demo property:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create demo property",
+        variant: "destructive"
+      });
+    } finally {
+      setCreatingDemo(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -229,10 +329,22 @@ const MyProperties: React.FC = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">My Properties</h3>
-        <Button onClick={createNewProperty}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Property
-        </Button>
+        <div className="flex gap-2">
+          {user?.email === ADMIN_EMAIL && (
+            <Button 
+              variant="outline" 
+              onClick={createDemoProperty}
+              disabled={creatingDemo}
+            >
+              <Wand2 className="mr-2 h-4 w-4" />
+              {creatingDemo ? "Creating..." : "Create Demo Listing"}
+            </Button>
+          )}
+          <Button onClick={createNewProperty}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Property
+          </Button>
+        </div>
       </div>
 
       {properties.map((property) => (
