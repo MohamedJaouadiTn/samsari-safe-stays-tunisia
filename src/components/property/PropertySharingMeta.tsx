@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Tables } from "@/integrations/supabase/types";
 
@@ -8,52 +7,57 @@ interface PropertySharingMetaProps {
   property: Property;
 }
 
+const SUPABASE_URL = "https://gigzciepwjrwbljdnixh.supabase.co";
+
 const PropertySharingMeta: React.FC<PropertySharingMetaProps> = ({ property }) => {
   useEffect(() => {
-    // Set page title
-    const title = `${property.title} - ${property.price_per_night} TND per night in ${property.city}, ${property.governorate}`;
+    // Set page title - format like Airbnb: "Title · Rating · Beds · Baths"
+    const title = `${property.title} · ${property.bedrooms} bedroom${property.bedrooms > 1 ? 's' : ''} · ${property.bathrooms} bath${property.bathrooms > 1 ? 's' : ''}`;
     document.title = title;
 
-    // Create meta description
-    const description = `${property.max_guests} guests • ${property.bedrooms} bedroom${property.bedrooms > 1 ? 's' : ''} • ${property.bathrooms} bathroom${property.bathrooms > 1 ? 's' : ''} in ${property.city}, ${property.governorate}. ${property.description?.substring(0, 100) || ''}...`;
+    // Create meta description with location and guest info
+    const description = `${property.max_guests} guests · ${property.bedrooms} bedroom${property.bedrooms > 1 ? 's' : ''} · ${property.bathrooms} bathroom${property.bathrooms > 1 ? 's' : ''} in ${property.city}, ${property.governorate}. ${property.price_per_night} TND/night. ${(property.description || '').substring(0, 100)}`;
     
-    // Get the first valid image URL
+    // Get the first valid image URL - prioritize high quality
     const getFirstImageUrl = () => {
       if (property.photos && Array.isArray(property.photos) && property.photos.length > 0) {
         const firstPhoto = property.photos[0] as any;
         if (firstPhoto && typeof firstPhoto === 'object' && firstPhoto.url) {
-          const imageUrl = firstPhoto.url;
-          // If it's already a full URL, return it; otherwise make it absolute
-          if (imageUrl.startsWith('http')) {
-            return imageUrl;
+          let imageUrl = firstPhoto.url;
+          // Ensure absolute URL
+          if (!imageUrl.startsWith('http')) {
+            if (imageUrl.startsWith('/storage/')) {
+              imageUrl = `${SUPABASE_URL}${imageUrl}`;
+            } else {
+              imageUrl = `${window.location.origin}${imageUrl}`;
+            }
           }
-          // For Supabase storage URLs that start with /storage/
-          if (imageUrl.startsWith('/storage/')) {
-            return `https://gigzciepwjrwbljdnixh.supabase.co${imageUrl}`;
-          }
-          return `${window.location.origin}${imageUrl}`;
+          return imageUrl;
         }
       }
-      // Return a default image with full URL
       return `${window.location.origin}/placeholder.svg`;
     };
 
     const imageUrl = getFirstImageUrl();
     const currentUrl = window.location.href;
+    const siteName = 'Samsari';
 
     // Update meta description
     updateOrCreateMetaTag('description', description);
 
-    // Update Open Graph tags
+    // Open Graph tags - essential for social sharing
     const ogTags = [
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: currentUrl },
       { property: 'og:image', content: imageUrl },
+      { property: 'og:image:secure_url', content: imageUrl },
+      { property: 'og:image:type', content: 'image/jpeg' },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
-      { property: 'og:site_name', content: 'Samsari - Tunisia Safe Stays' },
+      { property: 'og:image:alt', content: `${property.title} - Property in ${property.city}` },
+      { property: 'og:site_name', content: siteName },
       { property: 'og:locale', content: 'en_US' },
     ];
 
@@ -61,24 +65,22 @@ const PropertySharingMeta: React.FC<PropertySharingMetaProps> = ({ property }) =
       updateOrCreateMetaTag(prop, content, 'property');
     });
 
-    // Update Twitter Card tags
+    // Twitter Card tags
     const twitterTags = [
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },
       { name: 'twitter:image', content: imageUrl },
-      { name: 'twitter:site', content: '@samsari_tunisia' },
-      { name: 'twitter:creator', content: '@samsari_tunisia' },
+      { name: 'twitter:image:alt', content: `${property.title} - Property in ${property.city}` },
     ];
 
     twitterTags.forEach(({ name, content }) => {
       updateOrCreateMetaTag(name, content, 'name');
     });
 
-    // Cleanup function to reset title when component unmounts
+    // Cleanup on unmount
     return () => {
       document.title = 'Samsari - Discover Tunisia';
-      // Remove dynamic meta tags
       const metasToRemove = document.querySelectorAll('meta[data-dynamic="true"]');
       metasToRemove.forEach(meta => meta.remove());
     };
@@ -89,13 +91,12 @@ const PropertySharingMeta: React.FC<PropertySharingMetaProps> = ({ property }) =
     if (!meta) {
       meta = document.createElement('meta');
       meta.setAttribute(attributeType, identifier);
-      meta.setAttribute('data-dynamic', 'true'); // Mark as dynamic for cleanup
+      meta.setAttribute('data-dynamic', 'true');
       document.head.appendChild(meta);
     }
     meta.setAttribute('content', content);
   };
 
-  // This component doesn't render anything visible
   return null;
 };
 
