@@ -420,27 +420,39 @@ export type Database = {
       }
       property_views: {
         Row: {
+          duration_seconds: number | null
+          exit_at: string | null
           id: string
+          is_bounce: boolean | null
           property_id: string
           referrer: string | null
+          referrer_type: string | null
           session_id: string | null
           user_agent: string | null
           viewed_at: string
           viewer_id: string | null
         }
         Insert: {
+          duration_seconds?: number | null
+          exit_at?: string | null
           id?: string
+          is_bounce?: boolean | null
           property_id: string
           referrer?: string | null
+          referrer_type?: string | null
           session_id?: string | null
           user_agent?: string | null
           viewed_at?: string
           viewer_id?: string | null
         }
         Update: {
+          duration_seconds?: number | null
+          exit_at?: string | null
           id?: string
+          is_bounce?: boolean | null
           property_id?: string
           referrer?: string | null
+          referrer_type?: string | null
           session_id?: string | null
           user_agent?: string | null
           viewed_at?: string

@@ -54,6 +54,90 @@ const PropertyDetails = () => {
     }
   }, [property]);
 
+  // Track visit duration on page exit
+  useEffect(() => {
+    if (!property) return;
+    
+    const viewStartTime = Date.now();
+    const viewIdKey = `view_id_${property.id}`;
+    
+    const updateViewDuration = async () => {
+      const viewId = sessionStorage.getItem(viewIdKey);
+      if (!viewId) return;
+      
+      const durationSeconds = Math.floor((Date.now() - viewStartTime) / 1000);
+      const isBounce = durationSeconds < 10; // Bounce if less than 10 seconds
+      
+      try {
+        await supabase.from('property_views').update({
+          duration_seconds: durationSeconds,
+          is_bounce: isBounce,
+          exit_at: new Date().toISOString(),
+        }).eq('id', viewId);
+      } catch (error) {
+        console.error('Error updating view duration:', error);
+      }
+    };
+
+    // Use visibilitychange for more reliable tracking (works on mobile too)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        updateViewDuration();
+      }
+    };
+
+    // Fallback for desktop browsers
+    const handleBeforeUnload = () => {
+      updateViewDuration();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Also update on component unmount (navigation within the app)
+      updateViewDuration();
+    };
+  }, [property]);
+
+  const getReferrerType = (referrer: string): string => {
+    if (!referrer) return 'direct';
+    
+    const currentHost = window.location.host;
+    try {
+      const referrerUrl = new URL(referrer);
+      if (referrerUrl.host === currentHost) {
+        // Internal referrer - check the path
+        if (referrerUrl.pathname === '/' || referrerUrl.pathname === '') {
+          return 'homepage';
+        } else if (referrerUrl.pathname.includes('/search')) {
+          return 'search';
+        } else {
+          return 'internal';
+        }
+      } else {
+        // External referrer
+        if (referrerUrl.host.includes('facebook') || referrerUrl.host.includes('fb.')) {
+          return 'facebook';
+        } else if (referrerUrl.host.includes('instagram')) {
+          return 'instagram';
+        } else if (referrerUrl.host.includes('twitter') || referrerUrl.host.includes('x.com')) {
+          return 'twitter';
+        } else if (referrerUrl.host.includes('whatsapp')) {
+          return 'whatsapp';
+        } else if (referrerUrl.host.includes('google')) {
+          return 'google';
+        } else {
+          return 'external';
+        }
+      }
+    } catch {
+      return 'direct';
+    }
+  };
+
   const trackPropertyView = async () => {
     if (!property) return;
     
@@ -66,18 +150,27 @@ const PropertyDetails = () => {
     
     // Check if we already tracked this property in this session
     const viewedKey = `viewed_${property.id}`;
+    const viewIdKey = `view_id_${property.id}`;
     if (sessionStorage.getItem(viewedKey)) {
       return; // Already tracked this property in this session
     }
     
+    const referrerType = getReferrerType(document.referrer);
+    
     try {
-      await supabase.from('property_views').insert({
+      const { data, error } = await supabase.from('property_views').insert({
         property_id: property.id,
         viewer_id: user?.id || null,
         session_id: sessionId,
         referrer: document.referrer || null,
+        referrer_type: referrerType,
         user_agent: navigator.userAgent || null,
-      });
+      }).select('id').single();
+      
+      if (!error && data) {
+        // Store view ID for duration update
+        sessionStorage.setItem(viewIdKey, data.id);
+      }
       
       // Mark as viewed in this session
       sessionStorage.setItem(viewedKey, 'true');
