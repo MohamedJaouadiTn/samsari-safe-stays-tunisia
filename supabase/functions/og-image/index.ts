@@ -92,6 +92,7 @@ function getPropertyImage(property: any, siteUrl: string): string {
 }
 
 // Generates HTML with SEO metadata for social sharing only
+// Delayed redirect (400ms) ensures crawlers can parse metadata before redirect
 function generateSocialSharingHTML(seo: PropertySEO): string {
   return `<!DOCTYPE html>
 <html lang="en" prefix="og: https://ogp.me/ns#">
@@ -101,6 +102,7 @@ function generateSocialSharingHTML(seo: PropertySEO): string {
   
   <!-- Block indexing - this is for social previews only -->
   <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
   
   <!-- Primary Meta Tags -->
   <title>${seo.title}</title>
@@ -132,9 +134,14 @@ function generateSocialSharingHTML(seo: PropertySEO): string {
   <meta name="twitter:image" content="${seo.imageUrl}">
   <meta name="twitter:image:alt" content="Vacation rental in ${seo.city}, Tunisia">
   
-  <!-- Instant redirect for human users (crawlers don't execute JS) -->
-  <script>window.location.replace("${seo.canonicalUrl}");</script>
-  <noscript><meta http-equiv="refresh" content="0;url=${seo.canonicalUrl}"></noscript>
+  <!-- Delayed redirect (400ms) for human users - crawlers don't execute JS -->
+  <script>setTimeout(function(){window.location.replace("${seo.canonicalUrl}");},400);</script>
+  
+  <!-- Fallback for users with JS disabled - delay gives crawlers time -->
+  <noscript>
+    <meta http-equiv="refresh" content="1;url=${seo.canonicalUrl}">
+    <style>body{font-family:system-ui,sans-serif;padding:2rem;text-align:center;}</style>
+  </noscript>
 </head>
 <body>
   <h1>${seo.title}</h1>
