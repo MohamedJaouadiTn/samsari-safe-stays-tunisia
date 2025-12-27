@@ -18,6 +18,7 @@ import ChangePassword from "@/components/ChangePassword";
 import MyProperties from "@/components/host/MyProperties";
 import Inbox from "@/components/messaging/Inbox";
 import ReservationRequests from "@/components/ReservationRequests";
+import MyReservations from "@/components/booking/MyReservations";
 import ProfilePictureUpload from "@/components/ProfilePictureUpload";
 import { profileUpdateSchema } from "@/lib/validation";
 
@@ -357,13 +358,14 @@ const Profile = () => {
           </div>
 
           <Tabs value={currentTab} onValueChange={(value) => setSearchParams({ tab: value })} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="verification">Verification</TabsTrigger>
+              <TabsTrigger value="reservations">My Trips</TabsTrigger>
               <TabsTrigger value="properties">My Properties</TabsTrigger>
               <TabsTrigger value="saved">Saved</TabsTrigger>
               <TabsTrigger value="inbox">Inbox</TabsTrigger>
-              <TabsTrigger value="requests">Requests</TabsTrigger>
+              {profile.is_host && <TabsTrigger value="requests">Requests</TabsTrigger>}
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
@@ -502,6 +504,10 @@ const Profile = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="reservations">
+              <MyReservations />
             </TabsContent>
 
             <TabsContent value="inbox">

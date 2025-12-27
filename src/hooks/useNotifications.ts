@@ -1,84 +1,158 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link: string | null;
+  booking_id: string | null;
+  read: boolean;
+  created_at: string;
+}
+
 export const useNotifications = () => {
   const { user } = useAuth();
   const [notificationCount, setNotificationCount] = useState(0);
-  const [lastViewedTime, setLastViewedTime] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Fetch from notifications table
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error("Error fetching notifications:", error);
+        return;
+      }
+
+      setNotifications(data || []);
+      
+      // Count unread notifications
+      const unreadCount = (data || []).filter(n => !n.read).length;
+      setNotificationCount(unreadCount);
+    } catch (error) {
+      console.error("Error in fetchNotifications:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!user) return;
-
-    // Load last viewed time from localStorage
-    const stored = localStorage.getItem(`notifications_last_viewed_${user.id}`);
-    if (stored) {
-      setLastViewedTime(stored);
+    if (!user) {
+      setNotifications([]);
+      setNotificationCount(0);
+      return;
     }
-
-    const fetchNotifications = async () => {
-      try {
-        // Count pending reservation requests for hosts created after last view
-        const { data: reservationRequests, error: reservationError } = await supabase
-          .from("bookings")
-          .select("id, created_at")
-          .eq("host_id", user.id)
-          .eq("status", "pending");
-
-        if (reservationError) {
-          console.error("Error fetching reservation requests:", reservationError);
-          return;
-        }
-
-        // Only count requests created after last viewed time
-        let count = 0;
-        if (reservationRequests) {
-          const lastViewed = stored || new Date(0).toISOString();
-          count = reservationRequests.filter(req => req.created_at > lastViewed).length;
-        }
-
-        setNotificationCount(count);
-      } catch (error) {
-        console.error("Error in fetchNotifications:", error);
-      }
-    };
 
     fetchNotifications();
 
-    // Set up real-time subscription for bookings
-    const bookingsSubscription = supabase
-      .channel(`notifications-bookings-${user.id}`)
+    // Set up real-time subscription for new notifications
+    const notificationsSubscription = supabase
+      .channel(`notifications-${user.id}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
-          table: 'bookings',
-          filter: `host_id=eq.${user.id}`
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          // Add new notification to the list
+          setNotifications(prev => [payload.new as Notification, ...prev]);
+          setNotificationCount(prev => prev + 1);
+        }
+      )
+      .subscribe();
+
+    // Also subscribe to booking changes for real-time updates
+    const bookingsSubscription = supabase
+      .channel(`bookings-notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'bookings'
         },
         () => {
+          // Refresh notifications when bookings change
           fetchNotifications();
         }
       )
       .subscribe();
 
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-
     return () => {
+      supabase.removeChannel(notificationsSubscription);
       supabase.removeChannel(bookingsSubscription);
-      clearInterval(interval);
     };
   }, [user]);
 
-  const markAsViewed = () => {
+  const markAsRead = async (notificationId: string) => {
     if (!user) return;
-    const now = new Date().toISOString();
-    localStorage.setItem(`notifications_last_viewed_${user.id}`, now);
-    setLastViewedTime(now);
-    setNotificationCount(0);
+
+    try {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", notificationId);
+
+      if (error) throw error;
+
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+      setNotificationCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
   };
 
-  return { notificationCount, markAsViewed };
+  const markAllAsRead = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+
+      if (error) throw error;
+
+      // Update local state
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotificationCount(0);
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  };
+
+  // Legacy support - mark as viewed updates all to read
+  const markAsViewed = () => {
+    markAllAsRead();
+  };
+
+  return { 
+    notificationCount, 
+    notifications, 
+    loading,
+    markAsViewed,
+    markAsRead,
+    markAllAsRead,
+    refetch: fetchNotifications
+  };
 };
