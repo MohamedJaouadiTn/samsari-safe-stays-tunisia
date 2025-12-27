@@ -16,9 +16,12 @@ import {
   XCircle,
   AlertCircle,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  AlertTriangle
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInHours } from 'date-fns';
+import CancellationDialog from './CancellationDialog';
+import DisputeDialog from './DisputeDialog';
 
 interface Reservation {
   id: string;
@@ -35,6 +38,8 @@ interface Reservation {
   payment_status: string;
   created_at: string;
   host_response: string | null;
+  actual_check_out: string | null;
+  settlement_due_at: string | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ComponentType<any> }> = {
@@ -62,6 +67,9 @@ const MyReservations: React.FC = () => {
   const navigate = useNavigate();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -88,6 +96,8 @@ const MyReservations: React.FC = () => {
           payment_status,
           created_at,
           host_response,
+          actual_check_out,
+          settlement_due_at,
           properties (
             title,
             photos
@@ -126,7 +136,9 @@ const MyReservations: React.FC = () => {
           status: booking.status || 'pending',
           payment_status: booking.payment_status || 'pending',
           created_at: booking.created_at,
-          host_response: booking.host_response
+          host_response: booking.host_response,
+          actual_check_out: booking.actual_check_out,
+          settlement_due_at: booking.settlement_due_at
         };
       }) || [];
 
