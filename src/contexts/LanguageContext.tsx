@@ -194,7 +194,12 @@ const translations = {
     'analytics.property_not_found': 'Property not found',
     'analytics.access_denied': 'Access Denied',
     'analytics.no_access': "You don't have access to this property's analytics",
-    'analytics.load_error': 'Failed to load analytics'
+    'analytics.load_error': 'Failed to load analytics',
+    
+    // Share
+    'share.link_copied': 'Link copied to clipboard',
+    'share.copy_link': 'Copy link',
+    'share.more': 'More options'
   },
   fr: {
     // Header
@@ -378,7 +383,12 @@ const translations = {
     'analytics.property_not_found': 'Propriété non trouvée',
     'analytics.access_denied': 'Accès Refusé',
     'analytics.no_access': "Vous n'avez pas accès aux analytiques de cette propriété",
-    'analytics.load_error': 'Échec du chargement des analytiques'
+    'analytics.load_error': 'Échec du chargement des analytiques',
+    
+    // Share
+    'share.link_copied': 'Lien copié dans le presse-papiers',
+    'share.copy_link': 'Copier le lien',
+    'share.more': 'Plus d\'options'
   },
   ar: {
     // Header
@@ -562,7 +572,12 @@ const translations = {
     'analytics.property_not_found': 'العقار غير موجود',
     'analytics.access_denied': 'تم رفض الوصول',
     'analytics.no_access': 'ليس لديك حق الوصول إلى تحليلات هذا العقار',
-    'analytics.load_error': 'فشل تحميل التحليلات'
+    'analytics.load_error': 'فشل تحميل التحليلات',
+    
+    // Share
+    'share.link_copied': 'تم نسخ الرابط إلى الحافظة',
+    'share.copy_link': 'نسخ الرابط',
+    'share.more': 'المزيد من الخيارات'
   }
 };
 

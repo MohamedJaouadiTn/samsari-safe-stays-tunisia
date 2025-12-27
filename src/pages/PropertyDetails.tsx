@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
-  MapPin, Users, Bed, Bath, ArrowLeft, Share2, 
+  MapPin, Users, Bed, Bath, ArrowLeft,
   CheckCircle, Wifi, Car, Coffee, Tv, AirVent, Waves, Shield,
   AlarmSmoke, FireExtinguisher, Heart, Loader2, Pencil
 } from "lucide-react";
@@ -18,6 +18,7 @@ import PropertyImageGallery from "@/components/property/PropertyImageGallery";
 import PropertyReviews from "@/components/property/PropertyReviews";
 import PropertyBookingCard from "@/components/property/PropertyBookingCard";
 import PropertySharingMeta from "@/components/property/PropertySharingMeta";
+import SharePropertyButton from "@/components/property/SharePropertyButton";
 import AdminPropertyEditor from "@/components/admin/AdminPropertyEditor";
 import { usePropertyTranslation } from "@/hooks/usePropertyTranslation";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -261,55 +262,7 @@ const PropertyDetails = () => {
     }
   };
 
-  const shareProperty = async () => {
-    if (!property) return;
-    
-    // Use edge function URL for sharing - serves proper OG tags to social media crawlers
-    // Real users get instant JavaScript redirect to the clean app URL
-    const identifier = property.short_code || property.id;
-    const queryParam = property.short_code ? `code=${identifier}` : `id=${identifier}`;
-    const shareUrl = `https://gigzciepwjrwbljdnixh.supabase.co/functions/v1/og-image?${queryParam}&siteUrl=${encodeURIComponent(window.location.origin)}`;
-    
-    const shareTitle = `${property.title} - ${property.price_per_night} TND per night`;
-    const shareText = `Check out this beautiful ${property.property_type} in ${property.city}, ${property.governorate}`;
-    
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: shareTitle,
-            text: shareText,
-            url: shareUrl
-          });
-          
-          toast({
-            title: "Shared successfully",
-            description: "Property shared with others"
-          });
-        } catch (error) {
-          if ((error as Error).name !== 'AbortError') {
-            toast({
-              title: "Link Copied",
-              description: "Property link copied to clipboard"
-            });
-          }
-        }
-      } else {
-        toast({
-          title: "Link Copied",
-          description: "Property link copied to clipboard"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Sharing failed",
-        description: "Could not share the property",
-        variant: "destructive"
-      });
-    }
-  };
+  // shareProperty function removed - now using SharePropertyButton component
 
   const getPropertyImages = (photos: any) => {
     if (!photos || !Array.isArray(photos) || photos.length === 0) {
@@ -426,10 +379,11 @@ const PropertyDetails = () => {
                   Edit
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={shareProperty}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
+              <SharePropertyButton 
+                propertyId={property.id}
+                shortCode={property.short_code}
+                title={property.title}
+              />
             </div>
           </div>
           
