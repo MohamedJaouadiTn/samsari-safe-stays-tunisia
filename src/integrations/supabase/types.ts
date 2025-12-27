@@ -45,23 +45,33 @@ export type Database = {
         Row: {
           actual_check_in: string | null
           actual_check_out: string | null
+          cancelled_at: string | null
           check_in_date: string
           check_in_time: string | null
           check_out_date: string
           check_out_time: string | null
           created_at: string
           deposit_amount: number | null
+          dispute_opened_at: string | null
+          dispute_reason: string | null
+          dispute_resolved_at: string | null
           guest_id: string
           guest_service_fee: number | null
           host_id: string
+          host_payout_amount: number | null
           host_response: string | null
           id: string
           payment_method: string | null
           payment_status: string | null
           platform_commission: number | null
           property_id: string
+          refund_amount: number | null
+          refund_reason: string | null
+          refund_status: string | null
           request_message: string | null
           responded_at: string | null
+          settled_at: string | null
+          settlement_due_at: string | null
           status: string | null
           stripe_payment_intent_id: string | null
           total_price: number
@@ -70,23 +80,33 @@ export type Database = {
         Insert: {
           actual_check_in?: string | null
           actual_check_out?: string | null
+          cancelled_at?: string | null
           check_in_date: string
           check_in_time?: string | null
           check_out_date: string
           check_out_time?: string | null
           created_at?: string
           deposit_amount?: number | null
+          dispute_opened_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolved_at?: string | null
           guest_id: string
           guest_service_fee?: number | null
           host_id: string
+          host_payout_amount?: number | null
           host_response?: string | null
           id?: string
           payment_method?: string | null
           payment_status?: string | null
           platform_commission?: number | null
           property_id: string
+          refund_amount?: number | null
+          refund_reason?: string | null
+          refund_status?: string | null
           request_message?: string | null
           responded_at?: string | null
+          settled_at?: string | null
+          settlement_due_at?: string | null
           status?: string | null
           stripe_payment_intent_id?: string | null
           total_price: number
@@ -95,23 +115,33 @@ export type Database = {
         Update: {
           actual_check_in?: string | null
           actual_check_out?: string | null
+          cancelled_at?: string | null
           check_in_date?: string
           check_in_time?: string | null
           check_out_date?: string
           check_out_time?: string | null
           created_at?: string
           deposit_amount?: number | null
+          dispute_opened_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolved_at?: string | null
           guest_id?: string
           guest_service_fee?: number | null
           host_id?: string
+          host_payout_amount?: number | null
           host_response?: string | null
           id?: string
           payment_method?: string | null
           payment_status?: string | null
           platform_commission?: number | null
           property_id?: string
+          refund_amount?: number | null
+          refund_reason?: string | null
+          refund_status?: string | null
           request_message?: string | null
           responded_at?: string | null
+          settled_at?: string | null
+          settlement_due_at?: string | null
           status?: string | null
           stripe_payment_intent_id?: string | null
           total_price?: number
@@ -780,6 +810,10 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_cancellation_refund: {
+        Args: { p_booking_id: string; p_cancelled_by: string }
+        Returns: Json
+      }
       get_property_type_digit: { Args: { p_type: string }; Returns: number }
       has_admin_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
@@ -792,6 +826,10 @@ export type Database = {
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { user_email: string }; Returns: boolean }
+      process_booking_settlement: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "support"
