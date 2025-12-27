@@ -5,9 +5,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper to create SEO-friendly slug from title
-function createSlug(title: string): string {
-  return title
+// ============================================================
+// SEO METADATA GENERATOR - Reusable for future SSR/Next.js
+// ============================================================
+
+interface PropertySEO {
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  imageUrl: string;
+  city: string;
+  governorate: string;
+  price: number;
+  currency: string;
+}
+
+function createSlug(text: string): string {
+  return text
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
@@ -15,37 +29,124 @@ function createSlug(title: string): string {
     .replace(/-+$/, '');
 }
 
-// Helper to get key feature from amenities or property type
 function getKeyFeature(property: any): string {
   const amenities = property.amenities || [];
-  const priorityFeatures = ['wifi', 'pool', 'parking', 'ac', 'kitchen', 'washer', 'beach', 'garden'];
+  const features: Record<string, string> = {
+    'wifi': 'Fast WiFi',
+    'pool': 'Pool',
+    'parking': 'Free Parking',
+    'ac': 'Air Conditioning',
+    'kitchen': 'Full Kitchen',
+    'beach': 'Beach Access',
+  };
   
-  for (const feature of priorityFeatures) {
-    if (amenities.some((a: string) => a.toLowerCase().includes(feature))) {
-      if (feature === 'wifi') return 'Fast WiFi';
-      if (feature === 'pool') return 'Pool';
-      if (feature === 'parking') return 'Free Parking';
-      if (feature === 'ac') return 'Air Conditioning';
-      if (feature === 'kitchen') return 'Full Kitchen';
-      if (feature === 'washer') return 'Washer';
-      if (feature === 'beach') return 'Beach Access';
-      if (feature === 'garden') return 'Garden';
+  for (const [key, label] of Object.entries(features)) {
+    if (amenities.some((a: string) => a.toLowerCase().includes(key))) {
+      return label;
     }
   }
   
-  // Fallback to property type
   const typeLabels: Record<string, string> = {
     'apartment': 'Modern Apartment',
     'house': 'Entire House',
     'villa': 'Luxury Villa',
     'studio': 'Cozy Studio',
     'room': 'Private Room',
-    'cabin': 'Rustic Cabin',
-    'traditional': 'Traditional Home'
   };
   
   return typeLabels[property.property_type] || 'Vacation Rental';
 }
+
+// Generates SEO metadata from property data
+// This function can be extracted and reused in Next.js/SSR
+function generatePropertySEO(property: any, siteUrl: string): PropertySEO {
+  const keyFeature = getKeyFeature(property);
+  const bedroomText = property.bedrooms === 1 ? '1 Bedroom' : `${property.bedrooms} Bedrooms`;
+  
+  return {
+    title: `Rental Unit in ${property.city} · ${bedroomText} · ${keyFeature}`,
+    description: `${property.max_guests} guests · ${property.bedrooms} bedroom${property.bedrooms > 1 ? 's' : ''} · ${property.bathrooms} bathroom${property.bathrooms > 1 ? 's' : ''} in ${property.city}, ${property.governorate}. ${property.price_per_night} TND/night. ${(property.description || '').substring(0, 120).trim()}`,
+    canonicalUrl: `${siteUrl}/p/${property.short_code || property.id}`,
+    imageUrl: getPropertyImage(property, siteUrl),
+    city: property.city,
+    governorate: property.governorate,
+    price: property.price_per_night,
+    currency: property.currency || 'TND',
+  };
+}
+
+function getPropertyImage(property: any, siteUrl: string): string {
+  if (property.photos && Array.isArray(property.photos) && property.photos.length > 0) {
+    const firstPhoto = property.photos[0] as any;
+    if (firstPhoto?.url) {
+      let url = firstPhoto.url;
+      if (!url.startsWith('http')) {
+        url = url.startsWith('/storage/') 
+          ? `${Deno.env.get('SUPABASE_URL')}${url}` 
+          : `${siteUrl}${url}`;
+      }
+      return url;
+    }
+  }
+  return `${siteUrl}/placeholder.svg`;
+}
+
+// Generates HTML with SEO metadata for social sharing only
+function generateSocialSharingHTML(seo: PropertySEO): string {
+  return `<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Block indexing - this is for social previews only -->
+  <meta name="robots" content="noindex, nofollow">
+  
+  <!-- Primary Meta Tags -->
+  <title>${seo.title}</title>
+  <meta name="title" content="${seo.title}">
+  <meta name="description" content="${seo.description}">
+  
+  <!-- Canonical points to true product URL -->
+  <link rel="canonical" href="${seo.canonicalUrl}">
+  
+  <!-- Open Graph / Facebook / WhatsApp / Discord -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="${seo.canonicalUrl}">
+  <meta property="og:title" content="${seo.title}">
+  <meta property="og:description" content="${seo.description}">
+  <meta property="og:image" content="${seo.imageUrl}">
+  <meta property="og:image:secure_url" content="${seo.imageUrl}">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Vacation rental in ${seo.city}, Tunisia">
+  <meta property="og:site_name" content="Samsari">
+  <meta property="og:locale" content="en_US">
+  
+  <!-- Twitter Card (Large Image) -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="${seo.canonicalUrl}">
+  <meta name="twitter:title" content="${seo.title}">
+  <meta name="twitter:description" content="${seo.description}">
+  <meta name="twitter:image" content="${seo.imageUrl}">
+  <meta name="twitter:image:alt" content="Vacation rental in ${seo.city}, Tunisia">
+  
+  <!-- Instant redirect for human users (crawlers don't execute JS) -->
+  <script>window.location.replace("${seo.canonicalUrl}");</script>
+  <noscript><meta http-equiv="refresh" content="0;url=${seo.canonicalUrl}"></noscript>
+</head>
+<body>
+  <h1>${seo.title}</h1>
+  <p>${seo.description}</p>
+  <p>Redirecting to <a href="${seo.canonicalUrl}">property page</a>...</p>
+</body>
+</html>`;
+}
+
+// ============================================================
+// EDGE FUNCTION HANDLER
+// ============================================================
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -65,18 +166,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
 
-    // Fetch property data from database on the server
-    let query = supabase
-      .from('properties')
-      .select('*');
-
+    let query = supabase.from('properties').select('*');
     if (shortCode) {
       query = query.eq('short_code', shortCode);
-    } else if (propertyId) {
+    } else {
       query = query.eq('id', propertyId);
     }
 
@@ -90,109 +188,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get the main image URL (first photo selected by host)
-    let imageUrl = `${siteUrl}/placeholder.svg`;
-    if (property.photos && Array.isArray(property.photos) && property.photos.length > 0) {
-      const firstPhoto = property.photos[0] as any;
-      if (firstPhoto && typeof firstPhoto === 'object' && firstPhoto.url) {
-        imageUrl = firstPhoto.url;
-        if (!imageUrl.startsWith('http')) {
-          if (imageUrl.startsWith('/storage/')) {
-            imageUrl = `${supabaseUrl}${imageUrl}`;
-          } else {
-            imageUrl = `${siteUrl}${imageUrl}`;
-          }
-        }
-      }
-    }
-
-    // Build canonical URL with SEO-friendly slug
-    // Format: /property/{city}-{short-title}-{propertyId}
-    const citySlug = createSlug(property.city);
-    const titleSlug = createSlug(property.title);
-    const identifier = property.short_code || property.id;
-    const canonicalPath = `/property/${citySlug}-${titleSlug}-${identifier}`;
-    const canonicalUrl = `${siteUrl}${canonicalPath}`;
+    // Generate SEO metadata
+    const seo = generatePropertySEO(property, siteUrl);
     
-    // Actual app URL for redirect
-    const appUrl = property.short_code 
-      ? `${siteUrl}/p/${property.short_code}`
-      : `${siteUrl}/property/${property.id}`;
+    console.log(`Social Share SEO | ${property.title} | Canonical: ${seo.canonicalUrl}`);
 
-    // Get key feature for title
-    const keyFeature = getKeyFeature(property);
-
-    // Generate SEO metadata dynamically before HTML is sent
-    // Title format: Rental Unit in {City} · {Bedrooms} Bedroom · {Key Feature}
-    const bedroomText = property.bedrooms === 1 ? '1 Bedroom' : `${property.bedrooms} Bedrooms`;
-    const seoTitle = `Rental Unit in ${property.city} · ${bedroomText} · ${keyFeature}`;
-    
-    // Meta description using property summary and location
-    const description = `${property.max_guests} guests · ${property.bedrooms} bedroom${property.bedrooms > 1 ? 's' : ''} · ${property.bathrooms} bathroom${property.bathrooms > 1 ? 's' : ''} in ${property.city}, ${property.governorate}. ${property.price_per_night} TND/night. ${(property.description || '').substring(0, 120).trim()}`;
-
-    console.log('SSR SEO - Property:', property.title, '| Canonical:', canonicalUrl, '| Image:', imageUrl);
-
-    // Server-side rendered HTML with all SEO metadata in initial response
-    // Crawlers receive correct metadata on first request - no JavaScript needed
-    const html = `<!DOCTYPE html>
-<html lang="en" prefix="og: https://ogp.me/ns#">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- Primary SEO Meta Tags -->
-  <title>${seoTitle}</title>
-  <meta name="title" content="${seoTitle}">
-  <meta name="description" content="${description}">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="${canonicalUrl}">
-  
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="${canonicalUrl}">
-  <meta property="og:title" content="${seoTitle}">
-  <meta property="og:description" content="${description}">
-  <meta property="og:image" content="${imageUrl}">
-  <meta property="og:image:secure_url" content="${imageUrl}">
-  <meta property="og:image:type" content="image/jpeg">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="${property.title} - Vacation rental in ${property.city}, Tunisia">
-  <meta property="og:site_name" content="Samsari - Tunisia Safe Stays">
-  <meta property="og:locale" content="en_US">
-  
-  <!-- Twitter Card (Large Image) -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="${canonicalUrl}">
-  <meta name="twitter:title" content="${seoTitle}">
-  <meta name="twitter:description" content="${description}">
-  <meta name="twitter:image" content="${imageUrl}">
-  <meta name="twitter:image:alt" content="${property.title} - Vacation rental in ${property.city}, Tunisia">
-  
-  <!-- Additional SEO -->
-  <meta property="product:price:amount" content="${property.price_per_night}">
-  <meta property="product:price:currency" content="${property.currency || 'TND'}">
-  <meta name="geo.region" content="TN-${property.governorate}">
-  <meta name="geo.placename" content="${property.city}, Tunisia">
-  
-  <!-- Instant redirect for real users (crawlers don't execute JavaScript) -->
-  <script>window.location.replace("${appUrl}");</script>
-  <noscript>
-    <meta http-equiv="refresh" content="0;url=${appUrl}">
-  </noscript>
-</head>
-<body>
-  <h1>${seoTitle}</h1>
-  <p>${description}</p>
-  <p>Redirecting to <a href="${appUrl}">${property.title}</a>...</p>
-</body>
-</html>`;
+    // Generate HTML with full OG tags for social sharing
+    const html = generateSocialSharingHTML(seo);
 
     return new Response(html, {
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+        'Cache-Control': 'public, max-age=3600',
       },
     });
 
