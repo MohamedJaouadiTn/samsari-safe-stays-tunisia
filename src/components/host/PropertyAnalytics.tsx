@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Eye, Heart, DollarSign, Calendar, TrendingUp, Clock, Users } from 'lucide-react';
+import { ArrowLeft, Eye, Heart, DollarSign, Calendar, TrendingUp, Clock, Users, Timer, LogOut, MousePointer } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,7 +21,7 @@ import {
   ChartTooltipContent,
   type ChartConfig 
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { format, subDays, subMonths, subYears, startOfMonth, endOfMonth, parseISO, differenceInDays } from 'date-fns';
 
 type TimeRange = '7d' | '30d' | '1y' | '5y';
@@ -29,6 +29,9 @@ type TimeRange = '7d' | '30d' | '1y' | '5y';
 interface PropertyStats {
   totalViews: number;
   uniqueViews: number;
+  viewsPerVisit: number;
+  avgDuration: number;
+  bounceRate: number;
   wishlisted: number;
   totalRevenue: number;
   totalBookings: number;
@@ -36,6 +39,7 @@ interface PropertyStats {
   conversionRate: number;
   viewsOverTime: { date: string; views: number }[];
   bookingsByPeriod: { period: string; bookings: number; revenue: number }[];
+  referrerBreakdown: { name: string; value: number; color: string }[];
   peakPeriod: string;
 }
 
@@ -66,6 +70,9 @@ const PropertyAnalytics: React.FC = () => {
   const [stats, setStats] = useState<PropertyStats>({
     totalViews: 0,
     uniqueViews: 0,
+    viewsPerVisit: 0,
+    avgDuration: 0,
+    bounceRate: 0,
     wishlisted: 0,
     totalRevenue: 0,
     totalBookings: 0,
@@ -73,6 +80,7 @@ const PropertyAnalytics: React.FC = () => {
     conversionRate: 0,
     viewsOverTime: [],
     bookingsByPeriod: [],
+    referrerBreakdown: [],
     peakPeriod: 'N/A',
   });
 
@@ -183,6 +191,48 @@ const PropertyAnalytics: React.FC = () => {
       const uniqueSessions = new Set(viewsData.map(v => v.session_id).filter(Boolean));
       const uniqueViews = uniqueSessions.size || totalViews;
 
+      // Calculate views per visit
+      const viewsPerVisit = uniqueViews > 0 ? Math.round((totalViews / uniqueViews) * 10) / 10 : 0;
+
+      // Calculate average visit duration
+      const viewsWithDuration = viewsData.filter(v => v.duration_seconds != null && v.duration_seconds > 0);
+      const avgDuration = viewsWithDuration.length > 0
+        ? Math.round(viewsWithDuration.reduce((sum, v) => sum + (v.duration_seconds || 0), 0) / viewsWithDuration.length)
+        : 0;
+
+      // Calculate bounce rate
+      const viewsWithBounce = viewsData.filter(v => v.is_bounce != null);
+      const bounces = viewsWithBounce.filter(v => v.is_bounce === true).length;
+      const bounceRate = viewsWithBounce.length > 0 
+        ? Math.round((bounces / viewsWithBounce.length) * 100) 
+        : 0;
+
+      // Calculate referrer breakdown
+      const referrerCounts: Record<string, number> = {};
+      viewsData.forEach(v => {
+        const type = v.referrer_type || 'direct';
+        referrerCounts[type] = (referrerCounts[type] || 0) + 1;
+      });
+      
+      const REFERRER_COLORS: Record<string, string> = {
+        direct: 'hsl(var(--primary))',
+        homepage: 'hsl(var(--chart-1))',
+        search: 'hsl(var(--chart-2))',
+        internal: 'hsl(var(--chart-3))',
+        facebook: '#1877F2',
+        instagram: '#E4405F',
+        twitter: '#1DA1F2',
+        whatsapp: '#25D366',
+        google: '#4285F4',
+        external: 'hsl(var(--chart-4))',
+      };
+      
+      const referrerBreakdown = Object.entries(referrerCounts).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+        color: REFERRER_COLORS[name] || 'hsl(var(--muted))',
+      })).sort((a, b) => b.value - a.value);
+
       // Calculate total revenue and bookings
       const confirmedBookings = bookingsData.filter(b => 
         b.status === 'confirmed' || b.status === 'completed'
@@ -290,6 +340,9 @@ const PropertyAnalytics: React.FC = () => {
       setStats({
         totalViews,
         uniqueViews,
+        viewsPerVisit,
+        avgDuration,
+        bounceRate,
         wishlisted: wishlistCount || 0,
         totalRevenue,
         totalBookings,
@@ -297,6 +350,7 @@ const PropertyAnalytics: React.FC = () => {
         conversionRate,
         viewsOverTime,
         bookingsByPeriod,
+        referrerBreakdown,
         peakPeriod,
       });
     } catch (error) {
@@ -411,8 +465,52 @@ const PropertyAnalytics: React.FC = () => {
           </Card>
         </div>
 
-        {/* Additional Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {/* Visit Analytics Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-card border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.views_per_visit')}</CardTitle>
+              <MousePointer className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.viewsPerVisit}</div>
+              <p className="text-xs text-muted-foreground">
+                {t('analytics.pages_per_session')}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.visit_duration')}</CardTitle>
+              <Timer className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {stats.avgDuration >= 60 
+                  ? `${Math.floor(stats.avgDuration / 60)}m ${stats.avgDuration % 60}s`
+                  : `${stats.avgDuration}s`
+                }
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('analytics.average_time_on_page')}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.bounce_rate')}</CardTitle>
+              <LogOut className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.bounceRate}%</div>
+              <p className="text-xs text-muted-foreground">
+                {t('analytics.left_quickly')}
+              </p>
+            </CardContent>
+          </Card>
+
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.average_stay')}</CardTitle>
@@ -425,7 +523,10 @@ const PropertyAnalytics: React.FC = () => {
               </p>
             </CardContent>
           </Card>
+        </div>
 
+        {/* Booking Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.peak_period')}</CardTitle>
@@ -448,6 +549,19 @@ const PropertyAnalytics: React.FC = () => {
               <div className="text-2xl font-bold">{stats.totalBookings}</div>
               <p className="text-xs text-muted-foreground">
                 {t('analytics.confirmed_reservations')}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.total_revenue')}</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalRevenue.toLocaleString()} TND</div>
+              <p className="text-xs text-muted-foreground">
+                {t('analytics.from_bookings').replace('{count}', stats.totalBookings.toString())}
               </p>
             </CardContent>
           </Card>
@@ -529,6 +643,64 @@ const PropertyAnalytics: React.FC = () => {
                   />
                 </BarChart>
               </ChartContainer>
+            </CardContent>
+          </Card>
+
+          {/* Traffic Sources */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t('analytics.traffic_sources')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {stats.referrerBreakdown.length > 0 ? (
+                <div className="flex flex-col md:flex-row items-center gap-8">
+                  <div className="w-full md:w-1/2 h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={stats.referrerBreakdown}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {stats.referrerBreakdown.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <ChartTooltip 
+                          formatter={(value: number) => [`${value} ${t('analytics.visits')}`, '']}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="w-full md:w-1/2 space-y-3">
+                    {stats.referrerBreakdown.map((source, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: source.color }}
+                          />
+                          <span className="text-sm font-medium">{source.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">{source.value}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({stats.totalViews > 0 ? Math.round((source.value / stats.totalViews) * 100) : 0}%)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('analytics.no_traffic_data')}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
