@@ -21,7 +21,7 @@ import {
   ChartTooltipContent,
   type ChartConfig 
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { format, subDays, subMonths, subYears, startOfMonth, endOfMonth, parseISO, differenceInDays } from 'date-fns';
 
 type TimeRange = '7d' | '30d' | '1y' | '5y';
@@ -46,15 +46,15 @@ interface PropertyStats {
 const chartConfig = {
   views: {
     label: "Views",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--chart-1))",
   },
   bookings: {
     label: "Bookings",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--chart-2))",
   },
   revenue: {
     label: "Revenue",
-    color: "hsl(var(--chart-2))",
+    color: "hsl(var(--chart-3))",
   },
 } satisfies ChartConfig;
 
@@ -66,6 +66,7 @@ const PropertyAnalytics: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [propertyTitle, setPropertyTitle] = useState('');
+  const [hostId, setHostId] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [stats, setStats] = useState<PropertyStats>({
     totalViews: 0,
@@ -154,15 +155,17 @@ const PropertyAnalytics: React.FC = () => {
       }
 
       setPropertyTitle(property.title);
+      setHostId(property.host_id);
 
       const startDate = getStartDate(timeRange);
 
-      // Fetch views within time range
+      // Fetch views within time range - EXCLUDE HOST VIEWS
       const { data: views, error: viewsError } = await supabase
         .from('property_views')
         .select('*')
         .eq('property_id', propertyId)
-        .gte('viewed_at', startDate.toISOString());
+        .gte('viewed_at', startDate.toISOString())
+        .neq('viewer_id', property.host_id); // Exclude host's own views
 
       // Fetch wishlisted count (all time)
       const { count: wishlistCount, error: wishlistError } = await supabase
@@ -184,10 +187,10 @@ const PropertyAnalytics: React.FC = () => {
       const viewsData = views || [];
       const bookingsData = bookings || [];
 
-      // Calculate total views
+      // Calculate total views (excluding host)
       const totalViews = viewsData.length;
 
-      // Calculate unique views (by session_id)
+      // Calculate unique views (by session_id, excluding host)
       const uniqueSessions = new Set(viewsData.map(v => v.session_id).filter(Boolean));
       const uniqueViews = uniqueSessions.size || totalViews;
 
@@ -207,7 +210,7 @@ const PropertyAnalytics: React.FC = () => {
         ? Math.round((bounces / viewsWithBounce.length) * 100) 
         : 0;
 
-      // Calculate referrer breakdown
+      // Calculate referrer breakdown (accurate traffic sources)
       const referrerCounts: Record<string, number> = {};
       viewsData.forEach(v => {
         const type = v.referrer_type || 'direct';
@@ -215,16 +218,16 @@ const PropertyAnalytics: React.FC = () => {
       });
       
       const REFERRER_COLORS: Record<string, string> = {
-        direct: 'hsl(var(--primary))',
-        homepage: 'hsl(var(--chart-1))',
-        search: 'hsl(var(--chart-2))',
-        internal: 'hsl(var(--chart-3))',
+        direct: 'hsl(221, 83%, 53%)',
+        homepage: 'hsl(262, 83%, 58%)',
+        search: 'hsl(142, 71%, 45%)',
+        internal: 'hsl(199, 89%, 48%)',
         facebook: '#1877F2',
         instagram: '#E4405F',
         twitter: '#1DA1F2',
         whatsapp: '#25D366',
         google: '#4285F4',
-        external: 'hsl(var(--chart-4))',
+        external: 'hsl(45, 93%, 47%)',
       };
       
       const referrerBreakdown = Object.entries(referrerCounts).map(([name, value]) => ({
@@ -382,7 +385,7 @@ const PropertyAnalytics: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate('/profile?tab=properties')}
@@ -410,64 +413,64 @@ const PropertyAnalytics: React.FC = () => {
           <p className="text-muted-foreground">{propertyTitle}</p>
         </div>
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-card border-border">
+        {/* Key Metrics Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.total_views')}</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('analytics.total_views')}</CardTitle>
+              <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalViews}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.uniqueViews} {t('analytics.unique_visitors')}
+              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.totalViews.toLocaleString()}</div>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                {stats.uniqueViews.toLocaleString()} {t('analytics.unique_visitors')}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/50 dark:to-pink-900/30 border-pink-200 dark:border-pink-800">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.wishlisted')}</CardTitle>
-              <Heart className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-pink-700 dark:text-pink-300">{t('analytics.wishlisted')}</CardTitle>
+              <Heart className="h-4 w-4 text-pink-600 dark:text-pink-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.wishlisted}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-3xl font-bold text-pink-900 dark:text-pink-100">{stats.wishlisted}</div>
+              <p className="text-xs text-pink-600 dark:text-pink-400 mt-1">
                 {t('analytics.people_saved')}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 border-green-200 dark:border-green-800">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.total_revenue')}</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">{t('analytics.total_revenue')}</CardTitle>
+              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalRevenue.toLocaleString()} TND</div>
-              <p className="text-xs text-muted-foreground">
-                {t('analytics.from_bookings').replace('{count}', stats.totalBookings.toString())}
+              <div className="text-3xl font-bold text-green-900 dark:text-green-100">{stats.totalRevenue.toLocaleString()}</div>
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                TND • {stats.totalBookings} {t('analytics.bookings')}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/30 border-purple-200 dark:border-purple-800">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.conversion_rate')}</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">{t('analytics.conversion_rate')}</CardTitle>
+              <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.conversionRate}%</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">{stats.conversionRate}%</div>
+              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
                 {t('analytics.views_to_bookings')}
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Visit Analytics Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-card border-border">
+        {/* Secondary Metrics Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.views_per_visit')}</CardTitle>
               <MousePointer className="h-4 w-4 text-muted-foreground" />
@@ -480,7 +483,7 @@ const PropertyAnalytics: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.visit_duration')}</CardTitle>
               <Timer className="h-4 w-4 text-muted-foreground" />
@@ -498,7 +501,7 @@ const PropertyAnalytics: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.bounce_rate')}</CardTitle>
               <LogOut className="h-4 w-4 text-muted-foreground" />
@@ -511,7 +514,7 @@ const PropertyAnalytics: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.average_stay')}</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -525,9 +528,224 @@ const PropertyAnalytics: React.FC = () => {
           </Card>
         </div>
 
-        {/* Booking Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-card border-border">
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Views Over Time - Modern Area Chart */}
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-blue-500" />
+                {t('analytics.views_over_time')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">{getTimeRangeLabel(timeRange)}</p>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stats.viewsOverTime} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                      labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="views" 
+                      stroke="hsl(221, 83%, 53%)" 
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorViews)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          {/* Bookings & Revenue - Modern Bar Chart */}
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-500" />
+                {t('analytics.bookings_revenue')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">{getTimeRangeLabel(timeRange)}</p>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.bookingsByPeriod} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                    <XAxis 
+                      dataKey="period" 
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <YAxis 
+                      yAxisId="left"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <YAxis 
+                      yAxisId="right"
+                      orientation="right"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                      labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                      formatter={(value: number, name: string) => [
+                        name === 'revenue' ? `${value.toLocaleString()} TND` : value,
+                        name === 'revenue' ? 'Revenue' : 'Bookings'
+                      ]}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: 16 }}
+                      formatter={(value) => value === 'bookings' ? 'Bookings' : 'Revenue (TND)'}
+                    />
+                    <Bar 
+                      yAxisId="left"
+                      dataKey="bookings" 
+                      fill="hsl(262, 83%, 58%)"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={40}
+                    />
+                    <Bar 
+                      yAxisId="right"
+                      dataKey="revenue" 
+                      fill="hsl(142, 71%, 45%)"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={40}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Traffic Sources - Full Width */}
+        <Card className="shadow-lg mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-purple-500" />
+              {t('analytics.traffic_sources')}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">Where your visitors come from</p>
+          </CardHeader>
+          <CardContent>
+            {stats.referrerBreakdown.length > 0 ? (
+              <div className="flex flex-col lg:flex-row items-center gap-8">
+                <div className="w-full lg:w-1/2 h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats.referrerBreakdown}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={110}
+                        paddingAngle={3}
+                        dataKey="value"
+                        strokeWidth={2}
+                        stroke="hsl(var(--background))"
+                      >
+                        {stats.referrerBreakdown.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => [`${value} visits`, '']}
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--popover))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-full lg:w-1/2 space-y-3">
+                  {stats.referrerBreakdown.map((source, index) => {
+                    const percentage = stats.totalViews > 0 ? Math.round((source.value / stats.totalViews) * 100) : 0;
+                    return (
+                      <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-4 h-4 rounded-full shadow-sm" 
+                            style={{ backgroundColor: source.color }}
+                          />
+                          <span className="font-medium">{source.name}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{ 
+                                width: `${percentage}%`,
+                                backgroundColor: source.color 
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold min-w-[40px] text-right">{source.value}</span>
+                          <span className="text-xs text-muted-foreground min-w-[35px] text-right">
+                            {percentage}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Eye className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p>{t('analytics.no_traffic_data')}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Additional Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.peak_period')}</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -540,7 +758,7 @@ const PropertyAnalytics: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.total_bookings')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -553,7 +771,7 @@ const PropertyAnalytics: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('analytics.total_revenue')}</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -563,144 +781,6 @@ const PropertyAnalytics: React.FC = () => {
               <p className="text-xs text-muted-foreground">
                 {t('analytics.from_bookings').replace('{count}', stats.totalBookings.toString())}
               </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('analytics.views_over_time')} ({getTimeRangeLabel(timeRange)})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
-                <LineChart data={stats.viewsOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="views" 
-                    stroke="var(--color-views)" 
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('analytics.bookings_revenue')} ({getTimeRangeLabel(timeRange)})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
-                <BarChart data={stats.bookingsByPeriod}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="period" 
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    yAxisId="left"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar 
-                    yAxisId="left"
-                    dataKey="bookings" 
-                    fill="var(--color-bookings)" 
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar 
-                    yAxisId="right"
-                    dataKey="revenue" 
-                    fill="var(--color-revenue)" 
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          {/* Traffic Sources */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>{t('analytics.traffic_sources')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {stats.referrerBreakdown.length > 0 ? (
-                <div className="flex flex-col md:flex-row items-center gap-8">
-                  <div className="w-full md:w-1/2 h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={stats.referrerBreakdown}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          {stats.referrerBreakdown.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <ChartTooltip 
-                          formatter={(value: number) => [`${value} ${t('analytics.visits')}`, '']}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="w-full md:w-1/2 space-y-3">
-                    {stats.referrerBreakdown.map((source, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: source.color }}
-                          />
-                          <span className="text-sm font-medium">{source.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">{source.value}</span>
-                          <span className="text-xs text-muted-foreground">
-                            ({stats.totalViews > 0 ? Math.round((source.value / stats.totalViews) * 100) : 0}%)
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  {t('analytics.no_traffic_data')}
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

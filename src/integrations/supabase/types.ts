@@ -190,6 +190,7 @@ export type Database = {
       }
       id_verifications: {
         Row: {
+          allow_resubmit: boolean | null
           cin_back_url: string
           cin_front_url: string
           created_at: string
@@ -200,8 +201,10 @@ export type Database = {
           status: string | null
           submitted_at: string
           user_id: string
+          warning_count: number | null
         }
         Insert: {
+          allow_resubmit?: boolean | null
           cin_back_url: string
           cin_front_url: string
           created_at?: string
@@ -212,8 +215,10 @@ export type Database = {
           status?: string | null
           submitted_at?: string
           user_id: string
+          warning_count?: number | null
         }
         Update: {
+          allow_resubmit?: boolean | null
           cin_back_url?: string
           cin_front_url?: string
           created_at?: string
@@ -224,6 +229,7 @@ export type Database = {
           status?: string | null
           submitted_at?: string
           user_id?: string
+          warning_count?: number | null
         }
         Relationships: []
       }
@@ -268,42 +274,60 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          banned_at: string | null
+          banned_reason: string | null
           bio: string | null
           created_at: string
           full_name: string | null
           id: string
+          is_banned: boolean | null
           is_host: boolean | null
+          last_warning_at: string | null
+          last_warning_reason: string | null
           phone: string | null
           updated_at: string
           username: string | null
           verification_status: string | null
           verification_submitted_at: string | null
+          warning_count: number | null
         }
         Insert: {
           avatar_url?: string | null
+          banned_at?: string | null
+          banned_reason?: string | null
           bio?: string | null
           created_at?: string
           full_name?: string | null
           id: string
+          is_banned?: boolean | null
           is_host?: boolean | null
+          last_warning_at?: string | null
+          last_warning_reason?: string | null
           phone?: string | null
           updated_at?: string
           username?: string | null
           verification_status?: string | null
           verification_submitted_at?: string | null
+          warning_count?: number | null
         }
         Update: {
           avatar_url?: string | null
+          banned_at?: string | null
+          banned_reason?: string | null
           bio?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          is_banned?: boolean | null
           is_host?: boolean | null
+          last_warning_at?: string | null
+          last_warning_reason?: string | null
           phone?: string | null
           updated_at?: string
           username?: string | null
           verification_status?: string | null
           verification_submitted_at?: string | null
+          warning_count?: number | null
         }
         Relationships: []
       }
@@ -311,6 +335,8 @@ export type Database = {
         Row: {
           address: string | null
           amenities: Json | null
+          banned_at: string | null
+          banned_reason: string | null
           bathrooms: number
           bed_types: Json | null
           bedrooms: number
@@ -324,11 +350,15 @@ export type Database = {
           currency: string | null
           description: string | null
           extra_beds: number | null
+          frozen_at: string | null
+          frozen_reason: string | null
           google_maps_url: string | null
           governorate: string
           host_id: string
           house_rules: string | null
           id: string
+          is_banned: boolean | null
+          is_frozen: boolean | null
           is_public: boolean | null
           max_guests: number
           minimum_stay: number | null
@@ -347,6 +377,8 @@ export type Database = {
         Insert: {
           address?: string | null
           amenities?: Json | null
+          banned_at?: string | null
+          banned_reason?: string | null
           bathrooms?: number
           bed_types?: Json | null
           bedrooms?: number
@@ -360,11 +392,15 @@ export type Database = {
           currency?: string | null
           description?: string | null
           extra_beds?: number | null
+          frozen_at?: string | null
+          frozen_reason?: string | null
           google_maps_url?: string | null
           governorate: string
           host_id: string
           house_rules?: string | null
           id?: string
+          is_banned?: boolean | null
+          is_frozen?: boolean | null
           is_public?: boolean | null
           max_guests?: number
           minimum_stay?: number | null
@@ -383,6 +419,8 @@ export type Database = {
         Update: {
           address?: string | null
           amenities?: Json | null
+          banned_at?: string | null
+          banned_reason?: string | null
           bathrooms?: number
           bed_types?: Json | null
           bedrooms?: number
@@ -396,11 +434,15 @@ export type Database = {
           currency?: string | null
           description?: string | null
           extra_beds?: number | null
+          frozen_at?: string | null
+          frozen_reason?: string | null
           google_maps_url?: string | null
           governorate?: string
           host_id?: string
           house_rules?: string | null
           id?: string
+          is_banned?: boolean | null
+          is_frozen?: boolean | null
           is_public?: boolean | null
           max_guests?: number
           minimum_stay?: number | null
@@ -552,6 +594,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       host_bookings_view: {
@@ -664,12 +730,20 @@ export type Database = {
     }
     Functions: {
       get_property_type_digit: { Args: { p_type: string }; Returns: number }
+      has_admin_role: { Args: { _user_id: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { user_email: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "support"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -796,6 +870,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "support"],
+    },
   },
 } as const
