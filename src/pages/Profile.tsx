@@ -527,18 +527,7 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {profile.is_host ? (
-                    <ReservationRequests />
-                  ) : (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        You need to be a host to receive reservation requests.
-                      </p>
-                      <Button onClick={becomeHost} disabled={loading}>
-                        {loading ? "Processing..." : "Become a Host"}
-                      </Button>
-                    </div>
-                  )}
+                  <ReservationRequests />
                 </CardContent>
               </Card>
             </TabsContent>
